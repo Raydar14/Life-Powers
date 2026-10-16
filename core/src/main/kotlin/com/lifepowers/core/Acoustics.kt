@@ -65,6 +65,8 @@ object Acoustics {
         if (speechIdx.isEmpty()) return empty(durationS, "too_short")
         if (speechLevel - noiseFloor < 10.0) return empty(durationS, "noise")
 
+        // Whispered or noisy input can carry energy with no pitch; there is nothing to measure.
+        if (voicedIdx.isEmpty()) return empty(durationS, "unvoiced")
         val f0s = voicedIdx.map { f0[it] }
         val f0Mean = f0s.average()
         val f0Std = sd(f0s)

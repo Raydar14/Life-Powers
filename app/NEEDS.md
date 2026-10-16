@@ -20,12 +20,13 @@ library used is already in `gradle/libs.versions.toml`.
 ## Deliberate simplifications
 
 - `sync_cursor` has one row per connector (primary key `source`) rather than the `(source, stream)`
-  key in `docs/DATA_MODEL.md`. Streams inside a connector share one cursor.
+  key in `docs/DATA_MODEL.md`. The row's cursor packs one value per stream (`core/StreamCursors`),
+  so a failed stream keeps its own position and is retried.
 - `raw_sample` is not stored. Vendor payloads are mapped straight to `metric_sample`.
-- The `is_canonical` flag is written as true for every sample; source priority dedupe between
-  Oura API and Health Connect is not applied yet. Both copies can exist for one metric and both
-  feed the rollup. The unique index `(metric, start_utc, source)` still prevents duplicates within
-  a source.
+- The `is_canonical` flag is written as true for every sample. Source priority is applied at
+  rollup time instead (`core/SourcePriority`): for each metric and day only the best ranked source
+  present feeds the daily value, so Oura's own API and Oura's copy in Health Connect are not
+  counted twice. Health Connect samples carry the writing app's package in their source.
 - `ProfileRepository.phaseFor` uses `hormone_dose` events for the dosing rhythm's `lastDose` and
   the period anchor as `packStart` for the pack rhythm. No `profile_change` history is kept.
 - The HORMONAL forecast component has one calendar input (luteal -0.3, follicular +0.3), so its

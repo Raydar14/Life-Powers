@@ -8,6 +8,7 @@ import com.lifepowers.core.Agg
 import com.lifepowers.core.Baseline
 import com.lifepowers.core.Rollup
 import com.lifepowers.core.Sample
+import com.lifepowers.core.SourcePriority
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
@@ -38,7 +39,8 @@ class MetricRepositoryImpl @Inject constructor(
         val fromUtc = Dates.startOfDayMs(from.minusDays(1), zone)
         val toUtc = Dates.startOfDayMs(to.plusDays(2), zone) - 1
         val raw = samples.canonicalBetween(fromUtc, toUtc).map { it.toSample() }
-        val rolled = Rollup.daily(raw).filter { !it.localDate.isBefore(from) && !it.localDate.isAfter(to) }
+        // The same night or step count often arrives from two sources; keep the best one per day.
+        val rolled = Rollup.daily(SourcePriority.select(raw)).filter { !it.localDate.isBefore(from) && !it.localDate.isAfter(to) }
         val fromIso = Dates.iso(from)
         val toIso = Dates.iso(to)
 

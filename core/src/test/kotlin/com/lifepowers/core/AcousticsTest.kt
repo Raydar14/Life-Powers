@@ -53,4 +53,18 @@ class AcousticsTest {
         assertTrue(WordsVoiceGap.fires(listOf(fine, off, off)))
         assertFalse(WordsVoiceGap.fires(listOf(WordsVoiceGap.Day(-1.0, 1.8, 0.1), off, fine)))
     }
+
+    @Test fun whisperWithoutPitchIsRejectedNotNaN() {
+        val rnd = java.util.Random(7)
+        val n = sr * 24
+        val pcm = FloatArray(n) { i ->
+            val t = i.toDouble() / sr
+            val on = ((t * 4) % 1.0) < 0.6 && (t % 3.0) <= 2.6
+            if (on) (rnd.nextGaussian() * 0.2).toFloat() else (rnd.nextGaussian() * 0.0005).toFloat()
+        }
+        val f = Acoustics.analyze(pcm, sr)
+        assertFalse(f.qualityOk)
+        assertEquals("unvoiced", f.qualityNote)
+        assertFalse(f.f0MeanHz.isNaN())
+    }
 }

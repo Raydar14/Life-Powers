@@ -39,4 +39,15 @@ class ForecastTest {
         val day = Forecast.day(listOf(recovery, metabolic))
         assertEquals(Tier.GOOD, day.tier)
     }
+
+    @Test fun smallComponentsCanStillShowATier() {
+        val metabolic = Forecast.compute(Component.METABOLIC, listOf(
+            ForecastInput(Metrics.GLUCOSE_OVERNIGHT_MEAN, -0.6), ForecastInput(Metrics.GLUCOSE_FASTING, -0.4)))
+        assertEquals(Tier.NOT_GREAT, metabolic.tier)
+        val hormonal = Forecast.compute(Component.HORMONAL, listOf(ForecastInput("phase", -0.3)))
+        assertEquals(Tier.NOT_GREAT, hormonal.tier)
+        val recoveryTooThin = Forecast.compute(Component.RECOVERY, listOf(ForecastInput(Metrics.HRV_NIGHT_AVG, 1.0)))
+        assertEquals(Tier.UNKNOWN, recoveryTooThin.tier)
+        assertEquals(3, Forecast.minInputs(Component.DAY))
+    }
 }

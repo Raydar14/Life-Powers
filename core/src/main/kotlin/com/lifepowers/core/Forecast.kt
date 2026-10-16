@@ -41,8 +41,8 @@ object Forecast {
      * Maps a composite to a tier. The dead band between -0.2 and +0.2 follows the previous tier
      * so an ordinary morning does not flicker.
      */
-    fun tier(score: Double?, inputsUsed: Int, previous: Tier? = null): Tier {
-        if (score == null || inputsUsed < MIN_INPUTS) return Tier.UNKNOWN
+    fun tier(score: Double?, inputsUsed: Int, previous: Tier? = null, minInputs: Int = MIN_INPUTS): Tier {
+        if (score == null || inputsUsed < minInputs) return Tier.UNKNOWN
         return when {
             score > BEST_ABOVE -> Tier.BEST
             score > GOOD_ABOVE -> Tier.GOOD
@@ -54,7 +54,7 @@ object Forecast {
 
     fun compute(component: Component, inputs: List<ForecastInput>, previous: Tier? = null): ForecastResult {
         val score = composite(inputs)
-        val t = tier(score, inputs.size, previous)
+        val t = tier(score, inputs.size, previous, minInputs(component))
         val reasons = inputs.sortedByDescending { kotlin.math.abs(it.orientedZ) }.take(3).map { it.metric }
         return ForecastResult(component, t, score, inputs.size, reasons)
     }
@@ -80,6 +80,15 @@ object Forecast {
             Metrics.WEATHER_DAYLIGHT_MIN to 0.8,
         ),
     )
+
+    /**
+     * Inputs a component needs before it shows a tier: three, or every input it is configured with
+     * when it has fewer, so a panel built on one or two signals can still speak.
+     */
+    fun minInputs(component: Component): Int = when (component) {
+        Component.DAY -> MIN_INPUTS
+        else -> minOf(MIN_INPUTS, componentInputs[component]?.size ?: 1)
+    }
 
     /** The day forecast weights its components. */
     val dayWeights: Map<Component, Double> = mapOf(
