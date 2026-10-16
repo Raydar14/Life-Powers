@@ -236,6 +236,25 @@ otherwise, so the forecast does not flicker on an ordinary morning. Every foreca
 how the day actually went (readiness, voice, symptoms, self report) so the weights improve and the app
 can show you how often it was right.
 
+**Component forecasts.** The day forecast is a composite, and the parts keep their own tiers. Each
+panel in the app that forecasts anything is colored by its own tier, never by the day's overall tier.
+A hot pink day can hold a lavender glucose panel after a spiky night and a soft blue sky panel on the
+first day of a Mercury retrograde. The components:
+
+| Component | Inputs | Shown on |
+|---|---|---|
+| Recovery | sleep, HRV, resting HR, temperature deviation | Today |
+| Metabolic | overnight glucose, fasting glucose, yesterday's variability, late meals | Today |
+| Cardiovascular | morning BP against baseline, HRV, alcohol | Today |
+| Hormonal | phase and where you usually feel it, symptoms logged in this phase before | Today, Me |
+| Mind and voice | yesterday's voice indices, words, feel entries, sleep | Today, Journal |
+| Environment | pressure change, temperature extremes, air quality, daylight | Sky |
+| Sky and transits | moon phase against your own moon patterns, retrogrades, eclipses, geomagnetic activity, all optional | Sky |
+| Cravings | cycle phase, sleep debt, glucose dips, stress, your own craving history | Journal |
+
+Each component uses the same five tiers and colors. "Not enough information" is the honest default
+for any component with fewer than three inputs or no baseline.
+
 **Affect scorer.** Turns each voice check-in into daily affect metrics from two channels, the words
 and the sound. Section 5 describes it.
 
@@ -256,11 +275,11 @@ the result when enough days are in, and reports the effect in plain language wit
 
 ### 3.5 UI
 
-Six screens plus the check-in.
+Eight main screens plus the check-in, Feel, Settings, and Welcome.
 
 **Today.** The day forecast first: a large soft card in the tier color, one sentence on why, and a
-seven day strip of colored dots showing the week so far. Below it, recovery (Oura readiness, HRV z
-score, resting HR), metabolic (overnight glucose mean,
+seven day strip of colored dots showing the week so far. Then the component panels, each tinted by its
+own tier (section 3.4): recovery (Oura readiness, HRV z score, resting HR), metabolic (overnight glucose mean,
 time in range, largest spike yesterday), cardiovascular (latest BP, 7 day trend), body (weight 7 day
 average, trend arrow), behavior (screen time yesterday, last screen use before sleep, logged events),
 hormonal phase, and how you sounded this morning compared with your usual. Each tile shows its own
@@ -285,6 +304,12 @@ here too.
 
 **Sky and earth.** Today's weather and pressure trend, the moon, what is visible tonight, upcoming
 eclipses and showers, and recent ground activity with its distance from you.
+
+**Goals.** Goals by cadence, the habit tracker with its dot grid, and the timer.
+
+**Feel.** Texture, tempo, tint in three taps, reachable from Today and Journal.
+
+**Settings and Welcome.** The grouped settings described in section 5E and the two door first run.
 
 **Experiments.** Set up, run, and review self experiments.
 
@@ -460,6 +485,34 @@ of days and in which cycle phases, framed as a mirror for reflection rather than
 pull is a ritual and a prompt, and the app treats it that way: the card's own meaning text is yours to
 write or import, and the app does not supply interpretations.
 
+### Cravings, urges, and binges
+
+One quick button, always within reach on the Journal and Today screens, with three gentle choices:
+craving, urge to binge, binge. Each takes an intensity from 1 to 5 by a slide, an optional food or
+situation word, and nothing else at the moment. The app never asks what you ate or how much. Later, if
+you want, a soft follow up asks what helped or what made it harder, and that becomes part of your own
+pattern. Cravings join the correlation engine as outcomes, so the app can show whether yours follow
+short sleep, glucose dips two hours after a meal, the late luteal phase, or high stress days. The
+cravings component forecast uses that history to color its own panel. Language throughout is neutral
+and the counts are never shown as a streak or a score.
+
+### Interpreting a card, if you want
+
+Next to any pull is a button to ask for an interpretation. It appears only when AI features are on.
+The request sends the card, its orientation, its spread position, and, if you choose, your own note
+and today's forecast tier. It never sends health measurements. The response is written as reflection
+prompts and the card's traditional meanings rather than a prediction, and it is saved beneath the pull
+with a clear mark that it came from the assistant.
+
+### Photos as a scrapbook
+
+A journal entry can hold photos: what you did, how you look, what you worked on, where you were. They
+are stored encrypted on the phone beside the entry and show on the timeline as small rounded tiles.
+With AI features on, you can ask the assistant to look at a photo and help you document it. It replies
+with two or three questions ("Is this the garden bed from last week? How long did you work on it?")
+and writes your answers into the entry, so the record is richer than a caption without you typing a
+paragraph. Photos are sent only when you tap that button, one at a time, and never otherwise.
+
 ### Symptoms by speaking
 
 A long press on the Journal tab, or a sentence inside any check-in, logs symptoms without a form. "My
@@ -485,6 +538,7 @@ activity, nearby seismic and volcanic events, and the sky events worth stepping 
 | Space weather | Planetary K index, aurora probability at your latitude | An aurora alert is one of the best reasons to go outside at night. |
 | Ground | Earthquakes with magnitude and distance from you, volcanic activity reports, both filtered to the Ring of Fire and to anything within your chosen radius | Awareness, and a context marker for sleep or anxiety on a night the ground moved. |
 | Sky | Solar and lunar eclipses visible from your location with local times, meteor shower peaks with the moon's interference noted, planets visible to the naked eye and when, close pairings of planets and the moon, International Space Station passes | Cool things happening. The app tells you the evening before. |
+| Transits, optional | Mercury and other retrograde periods with start and end dates, the moon's sign, new and full moon signs, major planetary alignments | Many people track these. The app computes the astronomy on the phone and lets you decide whether the meaning matters to you. Off by default, one switch to turn on. |
 
 ### Location
 
@@ -512,6 +566,7 @@ call at all.
 | Space weather | NOAA Space Weather Prediction Center K index and aurora forecast | Free feed, polled a few times a day. |
 | Earthquakes | USGS Earthquake Hazards Program GeoJSON feeds | Free, near real time, global. The app keeps magnitude 4.5 and above worldwide and anything 2.5 and above within your radius. |
 | Volcanoes | Smithsonian Global Volcanism Program weekly report and USGS Volcano Hazards alerts | Weekly worldwide activity. The Ring of Fire is a bundled list of volcanoes to match against. |
+| Transits | Astronomy Engine, on device | Retrograde is apparent backward motion in ecliptic longitude, and a sign is a 30 degree slice of that longitude, so both fall out of the same positions used for planet visibility. No network call. |
 
 ### How it joins the analysis
 
@@ -528,6 +583,116 @@ moon sets at 11 so skies will be dark." "Partial lunar eclipse Tuesday, starts 9
 are." "Venus and Jupiter a finger apart at dusk this week." "Aurora possible tonight at your latitude."
 Each category can be turned on or off. Ground events notify only above a magnitude and within a
 distance you set, and never with alarm language.
+
+---
+
+## 5C. Goals and habits
+
+### Goals
+
+A Goals tab. A goal has a name, a cadence (daily, weekly, monthly, yearly), an optional target
+("three times", "ten minutes", "by June"), and a reminder schedule. The app does the reminding, with
+quiet notices at times you choose and a gentle check in when a period closes ("the week is ending,
+two of three walks done"). Progress is tracked per period and shown as soft filled circles, one per
+period, in the forecast colors: hot pink for met, light pink for mostly, lavender for started, pale
+for untouched. There is no shame state; a missed period is simply pale.
+
+### Habits
+
+A goal that repeats becomes a habit, and every habit links to the built in habit tracker. The tracker
+shows the current run, the last four weeks as a grid of dots, and a one tap check. Where the data
+already knows, the check happens by itself: a steps goal confirms from the watch, a phone down goal
+from usage stats, a bedtime goal from Oura, a workout from Samsung Health, a daily check in from the
+journal. Manual habits (meditation, stretching, reading, water) take a tap or a word in the check in.
+
+### Timer
+
+The habit tracker has a timer. Pick a habit, pick a length or leave it open, and start. The screen
+goes calm, shows the time in large type, and nothing else. Stopping logs the session against the
+habit with its real duration. A timer can run in the background with a quiet notice, and the session
+becomes a moment on the timeline so it joins the correlation engine (does meditating before bed
+lengthen deep sleep for you).
+
+### Linking goals to the rest
+
+A goal can point at a metric and the app will watch it for you: "resting heart rate under 58 by
+spring" or "deep sleep over an hour most nights." Experiments can be started from a goal, and an
+insight can be turned into a goal in one tap.
+
+---
+
+## 5D. How you feel, said your way
+
+The usual mood list (happy, sad, angry, worried, irritable) is a clinician's vocabulary, and people
+rarely talk about themselves that way. They say they are fried, wired, heavy, floaty, cozy, flat,
+tangled, running on empty, buzzing, raw. The app builds on that.
+
+### Texture, tempo, tint
+
+Three quick taps, each optional, each under two seconds.
+
+**Texture** is the word. A ring of everyday words rather than emotion labels: cozy, light, steady,
+full, floaty, buzzing, wired, fried, heavy, foggy, flat, hollow, tangled, raw, tender, scratchy,
+numb, open. Tap one or two. Add your own word any time; it joins your ring.
+
+**Tempo** is the speed you are running at: slow, easy, quick, racing. One tap on a short slider.
+
+**Tint** is a color. Drag a dot anywhere on a soft field blended from the app's palette and pick the
+color that feels like today. No label, no right answer. Over months the app shows you your tints as a
+strip, and that alone is often the clearest picture of a season.
+
+### Your own vocabulary
+
+The check-in transcripts and journal entries are mined for the feeling words you actually use ("I'm so
+done", "kind of fizzy today", "a lot"), and those phrases are offered as texture chips in your own
+words. The ring becomes yours within a few weeks. Words you never pick fade to the back.
+
+### What the engine does with it
+
+Every texture word, including yours, carries hidden coordinates on two axes the engine understands
+(energy and ease), set once from the word's meaning and refined from your own usage. Tempo adds a
+third. Tint is stored as hue and lightness. None of this is shown as a score; it lets the correlation
+engine treat how you feel like any other daily metric and lets the voice channel be compared with the
+words you chose. The gap card in section 5.4 uses feel entries alongside the transcript.
+
+---
+
+## 5E. Assistant features, settings, and onboarding
+
+### The assistant and the switch
+
+Everything that sends anything off the phone to a language model is an assistant feature: card
+interpretation, photo questions, richer transcript ratings, the weekly narrative. One master switch in
+Settings turns all of them off, and each has its own switch beneath it. With the master switch off,
+the buttons disappear rather than greying out, and nothing is queued for later. The default on first
+run is off. Every assistant call shows what it is about to send before it sends it.
+
+### Settings
+
+Settings is large on purpose, grouped so it does not feel large:
+
+- Connections: each device and account, its sync state, and a disconnect.
+- Profile and hormones: everything in section 4.
+- Location and world: the four location choices, radius and magnitude for ground notices, each sky
+  notice category, the transits switch.
+- Journal: audio keeping, journal affect scoring, photo storage, symptom vocabulary.
+- Feelings: your texture ring, words to add or retire, tint field on or off.
+- Goals and reminders: quiet hours, reminder style, timer sound.
+- Assistant: the master switch and the per feature switches, with a plain description of what each
+  one sends.
+- Forecast: thresholds, which components show on Today, the colors (fixed, but shown).
+- Privacy and data: export, backup, delete everything, what has ever left the phone.
+- Appearance: text size, reduced motion, left or right handed controls.
+
+### Onboarding, now or later
+
+The first screen offers two doors. "Set me up properly" takes ten to fifteen minutes and walks
+through connections, profile, location, feelings ring, goals, and the assistant switch, each as a
+short module you can leave and return to. "Let me play first" opens the app with sample data labeled
+as sample, every feature touchable, and a small soft card on Today that says what is still unset and
+offers one module at a time. Progress is saved per module, so doing the profile tonight and the
+connections on Sunday is fine. Nothing nags: one card, one line, and it goes quiet once everything
+that matters is set.
 
 ---
 
@@ -560,6 +725,15 @@ Inputs: sleep metrics, HRV, resting HR, steps, workouts, screen time, alcohol, c
 variability, hormonal phase, symptoms, medication changes, daylight hours, pressure change, air quality.
 Outcomes: voice.energy_index, voice.flatness_index, voice.tension_index, words.valence,
 words.optimism, and the words versus voice gap.
+
+**Cravings and urges.**
+Inputs: sleep debt, glucose dips and spikes, hours since last meal, stress score, voice tension, cycle
+phase, screen time, alcohol the night before.
+Outcomes: craving, urge to binge, and binge events and their intensity.
+
+**How you feel.**
+Inputs: everything above, plus daylight, pressure, moon, and goals met.
+Outcomes: texture energy and ease, tempo, tint lightness and hue.
 
 **Headaches and other symptoms.**
 Inputs: barometric pressure 24 hour change, temperature, humidity, air quality, sleep, hormonal phase,
@@ -596,6 +770,11 @@ Two derived tones keep text readable: a deep plum ink, #3B2340, for all text, an
 #B8206F, for filled primary buttons that carry white text. Both are darker versions of the palette,
 not new colors.
 
+**Color follows the thing it describes.** A panel's tint is the tier of what that panel forecasts.
+The day card wears the day's tier, the glucose panel wears the metabolic tier, the moon panel wears the
+sky tier. Two panels on one screen can disagree, and that disagreement is information. Panels that do
+not forecast anything stay white.
+
 **Shape and texture.** Corner radius 28 px on cards and 999 px on buttons, chips, and the floating
 bottom bar. Soft layered shadows in plum at low opacity so cards sit slightly above the ground. No
 hard rules or dividers; spacing and tint do the separating. Charts use rounded line caps and filled
@@ -615,6 +794,9 @@ and friendly. Nothing is set in all caps except tiny labels.
   APIs you connect and, if opted in, the transcript analysis service.
 - OAuth tokens stored in the Keystore backed EncryptedSharedPreferences.
 - Audio processed on device and deleted by default after feature extraction.
+- Assistant features are off by default behind one master switch. Each call shows what it will send
+  first. Card interpretation sends card details only. Photo questions send one photo at a time, on tap.
+- Photos are stored encrypted beside their journal entries and are never uploaded except by that tap.
 - Location is optional, can be typed instead of read from the device, and is rounded to about 10 km
   before any weather or air quality request. Astronomy runs on the phone. Earthquake and volcano feeds
   are global and filtered locally.
@@ -684,11 +866,14 @@ the words versus voice gap card.
 **Phase 2, four weeks: hormonal context, insights, journal, and sky.**
 Inito PDF importer and manual hormone entry, full phase labeler across all hormonal models,
 correlation engine with lags and stratification, Insights feed, cycle or dosing interval overlay
-view. Journal with voice notes, tarot log, spoken symptoms. Location settings, weather and air
-backfill, moon and sky computations, earthquake and volcano feeds, evening sky notices.
+view. Journal with voice notes, tarot log, spoken symptoms, cravings button, photos. Feel picker and
+personal vocabulary. Goals, habit tracker, timer. Component forecasts coloring their own panels.
+Location settings, weather and air backfill, moon, sky, and transit computations, earthquake and
+volcano feeds, evening sky notices. Settings and the two door onboarding.
 
 **Phase 3, four weeks: experiments and depth.**
-Experiment runner. Optional cloud transcript analysis with opt in. Optional speech emotion model.
+Experiment runner. Assistant features behind the master switch: card interpretation, photo questions,
+richer transcript ratings. Optional speech emotion model.
 CGM vendor API for event data if using Dexcom. Withings API if the scale or cuff is Withings.
 Encrypted backup and restore. Export.
 

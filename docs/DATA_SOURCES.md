@@ -211,6 +211,22 @@ catalog with a severity from intensity words.
 
 **App uses.** Entries and pulls are moments on the timeline and attach to a day. Symptoms become
 behavior_event rows after a one tap confirm. Journal text can optionally feed the words channel.
+Cravings, urges, and binges come from a quick button or a spoken sentence. Photos attach to entries
+and stay encrypted on the phone.
+
+---
+
+## Assistant (optional, off by default)
+
+| Feature | What leaves the phone | When |
+|---|---|---|
+| Card interpretation | Card, orientation, spread position; your note and the day's tier only if you include them | On tap, per pull |
+| Photo questions | One photo | On tap, per photo |
+| Transcript ratings | Check-in transcript text | Per check-in, only with the feature on |
+| Weekly narrative | The insights table, never raw samples | Weekly, only with the feature on |
+
+A master switch hides every assistant button. Each call is logged with a plain description of what
+was sent.
 
 ---
 
@@ -221,6 +237,7 @@ behavior_event rows after a one tap confirm. Journal text can optionally feed th
 | Weather, pressure, daylight, UV | Open-Meteo forecast and historical | Free HTTPS, no key | Coordinate rounded to 0.1 degree |
 | Air quality | Open-Meteo air quality | Free HTTPS, no key | Coordinate rounded to 0.1 degree |
 | Moon, planets, eclipses, rise and set | Astronomy Engine library, on device | Bundled | Never leaves the phone |
+| Retrogrades, moon sign, alignments (optional transits layer) | Astronomy Engine library, on device | Bundled | Never leaves the phone |
 | Meteor showers | International Meteor Organization calendar, bundled yearly | Bundled | Not needed |
 | Space weather, aurora | NOAA SWPC planetary K index and aurora forecast | Free HTTPS | Latitude only, on device |
 | Earthquakes | USGS Earthquake Hazards Program GeoJSON feeds | Free HTTPS | Global feed, distance computed on device |

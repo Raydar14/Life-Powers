@@ -215,6 +215,101 @@ CREATE TABLE world_event (
 );
 CREATE INDEX idx_world_time ON world_event (kind, start_utc);
 
+-- Goals and habits.
+CREATE TABLE goal (
+    id              INTEGER PRIMARY KEY,
+    name            TEXT NOT NULL,
+    cadence         TEXT NOT NULL,              -- 'daily', 'weekly', 'monthly', 'yearly'
+    target_count    INTEGER,                    -- times per period, null for a yes or no goal
+    target_metric   TEXT,                       -- optional metric key to watch, e.g. 'hr.resting'
+    target_value    REAL,
+    target_direction TEXT,                      -- 'below', 'above'
+    due_on          TEXT,                       -- for yearly or dated goals
+    remind_json     TEXT,                       -- times of day and days of week
+    created_on      TEXT NOT NULL,
+    archived_on     TEXT
+);
+CREATE TABLE goal_period (
+    goal_id         INTEGER REFERENCES goal(id),
+    period_start    TEXT NOT NULL,              -- local date the period begins
+    done_count      INTEGER NOT NULL DEFAULT 0,
+    status          TEXT NOT NULL,              -- 'met', 'mostly', 'started', 'untouched'
+    PRIMARY KEY (goal_id, period_start)
+);
+CREATE TABLE habit (
+    id              INTEGER PRIMARY KEY,
+    goal_id         INTEGER REFERENCES goal(id),
+    name            TEXT NOT NULL,
+    auto_source     TEXT,                       -- null for manual, else a metric or event rule, e.g. 'activity.steps>=8000', 'screen.last_use_utc<=21:00', 'workout.session>=20'
+    default_timer_min INTEGER
+);
+CREATE TABLE habit_check (
+    habit_id        INTEGER REFERENCES habit(id),
+    local_date      TEXT NOT NULL,
+    done            INTEGER NOT NULL,
+    source          TEXT NOT NULL,              -- 'tap', 'spoken', 'auto', 'timer'
+    PRIMARY KEY (habit_id, local_date)
+);
+CREATE TABLE timer_session (
+    id              INTEGER PRIMARY KEY,
+    habit_id        INTEGER REFERENCES habit(id),
+    start_utc       INTEGER NOT NULL,
+    end_utc         INTEGER,
+    planned_min     INTEGER,
+    zone_offset_min INTEGER NOT NULL
+);
+
+-- How you feel: texture, tempo, tint.
+CREATE TABLE feel_word (
+    word            TEXT PRIMARY KEY,
+    energy          REAL NOT NULL,              -- -1 to 1, hidden coordinate
+    ease            REAL NOT NULL,              -- -1 to 1, hidden coordinate
+    origin          TEXT NOT NULL,              -- 'builtin', 'user', 'mined'
+    last_used_utc   INTEGER,
+    use_count       INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE feel_entry (
+    id              INTEGER PRIMARY KEY,
+    at_utc          INTEGER NOT NULL,
+    zone_offset_min INTEGER NOT NULL,
+    words_json      TEXT,                       -- one or two feel_word keys
+    tempo           INTEGER,                    -- 1 slow, 2 easy, 3 quick, 4 racing
+    tint_hue        REAL,                       -- 0 to 360
+    tint_light      REAL,                       -- 0 to 1
+    source          TEXT NOT NULL               -- 'tap', 'checkin', 'journal'
+);
+CREATE INDEX idx_feel_time ON feel_entry (at_utc);
+
+-- Photos in the scrapbook.
+CREATE TABLE photo (
+    id              INTEGER PRIMARY KEY,
+    journal_id      INTEGER REFERENCES journal_entry(id),
+    taken_utc       INTEGER NOT NULL,
+    path            TEXT NOT NULL,              -- encrypted file on device
+    caption         TEXT,
+    assistant_json  TEXT,                       -- questions asked and answers given, only when used
+    sent_to_assistant_at INTEGER                -- null unless the user tapped the button
+);
+
+-- Assistant and onboarding state.
+CREATE TABLE assistant_setting (
+    feature         TEXT PRIMARY KEY,           -- 'master', 'card_interpretation', 'photo_questions', 'transcript_ratings', 'weekly_narrative'
+    enabled         INTEGER NOT NULL DEFAULT 0,
+    updated_at      INTEGER NOT NULL
+);
+CREATE TABLE assistant_call (
+    id              INTEGER PRIMARY KEY,
+    feature         TEXT NOT NULL,
+    at_utc          INTEGER NOT NULL,
+    sent_summary    TEXT NOT NULL,              -- plain words describing exactly what left the phone
+    response        TEXT
+);
+CREATE TABLE onboarding_module (
+    module          TEXT PRIMARY KEY,           -- 'connections', 'profile', 'location', 'feelings', 'goals', 'assistant', 'notices'
+    status          TEXT NOT NULL,              -- 'untouched', 'started', 'done', 'skipped'
+    updated_at      INTEGER
+);
+
 -- Sync bookkeeping.
 CREATE TABLE sync_cursor (
     source          TEXT NOT NULL,
@@ -274,6 +369,12 @@ Canonical unit in brackets. Day assignment rule tells the rollup which local day
 | forecast.score | z composite | calendar | last (computed each morning) |
 | forecast.tier | 'best', 'good', 'not_great', 'likely_hard', 'unknown' | calendar | last |
 | forecast.inputs_used | count | calendar | last |
+| forecast.component.recovery, .metabolic, .cardio, .hormonal, .mind, .environment, .sky, .cravings | tier | calendar | last |
+| feel.energy, feel.ease | -1 to 1 | calendar | mean |
+| feel.tempo | 1 to 4 | calendar | mean |
+| feel.tint_hue, feel.tint_light | degrees, 0 to 1 | calendar | last |
+| goals.met_share | 0 to 1 | calendar | last |
+| habit.timer_min | min | calendar | sum |
 | forecast.outcome_score | z composite of readiness, voice, symptoms, self report | calendar | last (computed next morning) |
 | weather.temp_max, weather.temp_min | degrees C | calendar | last |
 | weather.humidity_mean | percent | calendar | mean |
@@ -314,6 +415,13 @@ Canonical unit in brackets. Day assignment rule tells the rollup which local day
 | journal | none, note: entry id | journal_entry |
 | tarot_pull | none, note: card and spread | tarot_pull |
 | spoken_symptom | severity 1 to 5, note: raw phrase | voice parse, becomes symptom.* on confirm |
+| craving | intensity 1 to 5, note: food or situation | quick button, spoken |
+| urge_to_binge | intensity 1 to 5, note | quick button, spoken |
+| binge | intensity 1 to 5, note | quick button, spoken |
+| craving_followup | none, note: what helped or made it harder | later soft prompt |
+| habit_done | minutes when timed | tap, auto rule, timer |
+| photo | none, note: photo id | journal |
+| retrograde_start, retrograde_end | none, note: planet | on device astronomy, when transits are on |
 
 ## Rollup rules worth stating
 
