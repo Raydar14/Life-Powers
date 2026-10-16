@@ -64,9 +64,10 @@ CREATE TABLE cycle_day (
     local_date      TEXT PRIMARY KEY,
     cycle_id        INTEGER NOT NULL,
     cycle_day       INTEGER NOT NULL,       -- 1 = first day of bleeding
-    phase           TEXT NOT NULL,          -- 'menstrual', 'follicular', 'ovulatory', 'luteal', 'unknown'
+    phase           TEXT NOT NULL,          -- natural cycle: 'menstrual', 'follicular', 'ovulatory', 'luteal', 'unknown'. pack rhythm: 'active_1', 'active_2', 'active_3', 'hormone_free'. dosing rhythm: 'dose_d0_2', 'dose_d3_6', 'dose_d7_plus'. gestational: 'week_N'. no cycle: table empty.
     confidence      REAL NOT NULL,          -- 0 to 1
-    basis           TEXT NOT NULL           -- 'hormone', 'temperature', 'calendar'
+    basis           TEXT NOT NULL,          -- 'hormone', 'temperature', 'symptom', 'calendar', 'pack_calendar', 'dose_log'
+    hormonal_model  TEXT NOT NULL           -- the model in force on that date
 );
 
 -- Output of the correlation engine. Rebuilt nightly.
@@ -108,6 +109,53 @@ CREATE TABLE experiment_day (
     adhered         INTEGER,                -- null until the user confirms
     PRIMARY KEY (experiment_id, local_date)
 );
+
+-- The person's hormonal and demographic context. One current row.
+CREATE TABLE user_profile (
+    id                  INTEGER PRIMARY KEY CHECK (id = 1),
+    date_of_birth       TEXT,                   -- 'YYYY-MM-DD'
+    sex_at_birth        TEXT,                   -- 'female', 'male', 'intersex', 'prefer_not_to_say'
+    gender_identity     TEXT,                   -- free text or chosen label, optional
+    menstrual_status    TEXT,                   -- 'regular', 'irregular', 'perimenopause', 'postmenopause', 'amenorrhea', 'pregnant', 'postpartum', 'not_applicable'
+    cycle_length_days   INTEGER,
+    cycle_variability   INTEGER,                -- typical spread in days
+    last_period_start   TEXT,
+    contraception       TEXT,                   -- 'none', 'combined_pill', 'progestin_pill', 'hormonal_iud', 'copper_iud', 'implant', 'injection', 'ring', 'patch', 'other'
+    hrt                 TEXT,                   -- null or description
+    gah_therapy         TEXT,                   -- gender affirming hormones: null or 'estradiol', 'testosterone', 'blockers', combination
+    due_or_delivery     TEXT,                   -- for pregnant or postpartum
+    hormonal_model      TEXT NOT NULL,          -- derived by the selector: 'natural_cycle', 'natural_cycle_low_trust', 'pack_rhythm', 'suppressed_uncertain', 'no_cycle', 'dosing_rhythm', 'gestational'
+    updated_at          INTEGER NOT NULL
+);
+
+-- Dated history of every profile change, so analysis splits at the right day.
+CREATE TABLE profile_change (
+    id              INTEGER PRIMARY KEY,
+    field           TEXT NOT NULL,
+    old_value       TEXT,
+    new_value       TEXT,
+    effective_date  TEXT NOT NULL,              -- the date the change took effect in the body, not when it was typed
+    note            TEXT
+);
+
+-- Medications and hormone doses are behavior_event rows of kind 'medication' or 'hormone_dose'.
+
+-- One row per voice check-in.
+CREATE TABLE voice_checkin (
+    id              INTEGER PRIMARY KEY,
+    start_utc       INTEGER NOT NULL,
+    zone_offset_min INTEGER NOT NULL,
+    duration_s      REAL NOT NULL,
+    prompt_id       TEXT NOT NULL,
+    transcript      TEXT,
+    audio_path      TEXT,                       -- null once deleted (the default)
+    acoustic_json   TEXT NOT NULL,              -- the 88 feature vector plus signal quality fields
+    words_json      TEXT,                       -- language marker rates and any cloud ratings
+    quality_ok      INTEGER NOT NULL DEFAULT 1, -- 0 excludes from baselines
+    quality_note    TEXT,                       -- 'noise', 'too_short', 'illness_logged'
+    crisis_flag     INTEGER NOT NULL DEFAULT 0  -- set when crisis language detected; recording not scored
+);
+CREATE INDEX idx_checkin_time ON voice_checkin (start_utc);
 
 -- Sync bookkeeping.
 CREATE TABLE sync_cursor (
@@ -156,6 +204,15 @@ Canonical unit in brackets. Day assignment rule tells the rollup which local day
 | screen.last_use_utc | epoch ms | night ending | last |
 | screen.first_use_utc | epoch ms | calendar | last |
 | screen.by_category.* | min | calendar | sum |
+| voice.energy_index | z | calendar | last |
+| voice.flatness_index | z | calendar | last |
+| voice.tension_index | z | calendar | last |
+| voice.arousal, voice.valence | 0 to 1 | calendar | last |
+| voice.f0_mean, voice.f0_range, voice.loudness_mean, voice.speech_rate, voice.pause_mean_s | Hz, Hz, dB, syllables per s, s | calendar | last |
+| words.energy_self_report | 0 to 10 | calendar | last |
+| words.valence, words.optimism, words.anxiety_markers, words.self_focus | 0 to 1 | calendar | last |
+| words_voice_gap | z difference | calendar | last |
+| hormone.fsh_trend | mIU/mL | calendar | 28 day mean |
 
 ## Event catalog
 
@@ -173,6 +230,11 @@ Canonical unit in brackets. Day assignment rule tells the rollup which local day
 | period_start | none | manual, derived from hormone pattern |
 | bp_context | none, note: rested, post_coffee, post_exercise, stressed | manual prompt |
 | screens_in_bed | minutes | derived from usage stats after sleep.bedtime |
+| symptom.* | severity 1 to 5. Kinds: cramps, bloating, breast_tenderness, headache, migraine, hot_flash, night_sweat, mood_swing, irritability, anxiety, low_libido, acne, fatigue, brain_fog, insomnia, craving | manual, voice check-in confirmation |
+| medication | dose, note: name | manual, profile |
+| hormone_dose | dose, note: type and route | manual, profile |
+| contraception_change | none, note: from and to | profile_change |
+| pack_day | day number 1 to 28 | derived from profile for pack rhythm model |
 
 ## Rollup rules worth stating
 
@@ -186,6 +248,18 @@ Canonical unit in brackets. Day assignment rule tells the rollup which local day
   guidance treats as most comparable day to day.
 - Screen time after 21:00 is a default cut. The baseline job also computes the user's own median
   bedtime and derives a personal "screen minutes in the 2 hours before median bedtime" metric.
+
+- Voice and words metrics are computed only from check-ins with quality_ok = 1 and only once 14
+  such check-ins exist. The composite indices are means of the z scores of their component features,
+  with sign chosen so that a higher value means more of the named quality.
+- words_voice_gap is words.valence z minus the negative of voice.flatness_index z, so a large positive
+  value means "words say better than the voice does."
+- When the hormonal model is pack_rhythm, phase strata are the four pack weeks. When it is
+  dosing_rhythm, strata are the days since dose buckets. When it is no_cycle, the phase stratum is
+  omitted and only weekday versus weekend stratification runs.
+- Baselines are recomputed from scratch for the window after any profile_change with a hormonal
+  effect (contraception, HRT, gender affirming hormones, pregnancy status), and insights do not pool
+  data across such a change.
 
 ## Baseline and z score
 

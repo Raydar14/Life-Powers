@@ -157,6 +157,50 @@ Oura sleep start), first unlock after waking, longest continuous session.
 
 ---
 
+## Profile (built in)
+
+**Captures.** Date of birth, sex assigned at birth, gender identity, gender affirming hormone therapy,
+menstrual status, typical cycle length and variability, last period start, contraception with start
+and stop dates, hormone replacement therapy, relevant medications with start and dose change dates.
+
+**Path.** Entered in the app at setup, editable any time. Every change is dated and kept as history
+so a contraception change or a new medication splits the analysis at the right day.
+
+**App uses.** The hormonal model selector (DESIGN.md section 4) reads it to decide which phase model
+runs. Medication and dose change dates become markers on the timeline and events in the behavior log.
+
+**Missing.** Nothing is imported automatically. Oura does hold a cycle insights feature and period
+predictions, but the profile is the authority and Oura's period start tags are treated as suggestions
+to confirm.
+
+---
+
+## Voice check-in (built in)
+
+**Captures.** One 30 to 60 second recording per day in response to a prompt from a fixed rotating
+set, plus optional free recordings.
+
+| Channel | Processing | Output |
+|---|---|---|
+| Words | On device speech to text (Android SpeechRecognizer offline mode or a bundled whisper.cpp small model) | Transcript, explicit self reports, mentioned behaviors and symptoms, language marker rates |
+| Words, optional | Cloud language model with explicit opt in, transcript only | Structured ratings for energy, optimism, anxiety, sadness, irritability with quoted evidence |
+| Voice | On device acoustic feature extraction, eGeMAPS or equivalent | 88 feature vector: pitch, loudness, rate, pauses, jitter, shimmer, harmonics to noise, spectral shape |
+| Voice, optional | On device TensorFlow Lite speech emotion model | Arousal and valence estimates |
+
+**App uses.** Features and transcript stored per check-in. Daily affect metrics derived after a 14
+recording baseline exists, expressed as z scores against the person's own trailing window and
+stratified by hormonal phase once data allows. Mentioned behaviors and symptoms offered for one tap
+confirmation into the event log.
+
+**Missing.** Absolute emotion labels. The design deliberately reports change against your own
+baseline only. Recordings with heavy background noise, very short speech, or a logged cold are
+excluded from baselines.
+
+**Privacy.** Audio processed on device and deleted by default once transcript and features are
+stored. Keeping encrypted audio is an option. Cloud analysis, if opted in, receives text only.
+
+---
+
 ## Source priority
 
 When two sources supply the same metric, the canonical copy comes from the first available source in
@@ -173,3 +217,6 @@ this list. The other copy stays in raw storage.
 | Blood pressure | Withings API, Health Connect, manual |
 | Hormones | Inito PDF import, manual |
 | Screen time | UsageStatsManager |
+| Voice and words affect metrics | Voice check-in |
+| Profile, contraception, medications | Profile, manual |
+| Symptoms | Manual, voice check-in confirmation |

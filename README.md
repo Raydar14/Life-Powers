@@ -1,8 +1,9 @@
 # Life Powers
 
 A personal health picture: one app that combines Oura Ring, hormone monitor, Galaxy Watch, continuous
-glucose monitor, smart scale, smart blood pressure monitor, and phone screen time data on a single
-timeline, and shows which daily behaviors move which outcomes.
+glucose monitor, smart scale, smart blood pressure monitor, phone screen time, and a daily voice
+check-in on a single timeline, reads them in the light of your age, sex, cycle, and contraception,
+and shows which daily behaviors move which outcomes.
 
 Design documents:
 
