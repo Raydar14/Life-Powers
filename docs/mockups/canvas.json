@@ -1,0 +1,27 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-16T02:52:00Z"},
+  "title": "Life Powers App Mockups",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 390, "h": 844, "title": "Today", "is_interactive": true, "radius": 36},
+    "Checkin.dc.html": {"x": 470, "y": 0, "w": 390, "h": 844, "title": "Voice check-in", "is_interactive": true, "radius": 36},
+    "Journal.dc.html": {"x": 940, "y": 0, "w": 390, "h": 844, "title": "Journal, tarot, photos, cravings", "is_interactive": true, "radius": 36},
+    "Timeline.dc.html": {"x": 1410, "y": 0, "w": 390, "h": 844, "title": "Days", "is_interactive": true, "radius": 36},
+    "Sky.dc.html": {"x": 1880, "y": 0, "w": 390, "h": 844, "title": "Sky and earth", "is_interactive": true, "radius": 36},
+    "Insights.dc.html": {"x": 2350, "y": 0, "w": 390, "h": 844, "title": "Patterns", "is_interactive": true, "radius": 36},
+    "Profile.dc.html": {"x": 2820, "y": 0, "w": 390, "h": 844, "title": "Me", "is_interactive": true, "radius": 36},
+    "Experiment.dc.html": {"x": 3290, "y": 0, "w": 390, "h": 844, "title": "Experiment", "is_interactive": true, "radius": 36},
+    "Welcome.dc.html": {"x": 0, "y": 1200, "w": 390, "h": 844, "title": "Welcome, two doors", "is_interactive": true, "radius": 36},
+    "Feel.dc.html": {"x": 470, "y": 1200, "w": 390, "h": 844, "title": "Feel: texture, tempo, tint", "is_interactive": true, "radius": 36},
+    "Goals.dc.html": {"x": 940, "y": 1200, "w": 390, "h": 844, "title": "Goals, habits, timer", "is_interactive": true, "radius": 36},
+    "Settings.dc.html": {"x": 1410, "y": 1200, "w": 390, "h": 844, "title": "Settings", "is_interactive": true, "radius": 36}
+  },
+  "order": ["Main.dc.html", "Checkin.dc.html", "Journal.dc.html", "Timeline.dc.html", "Sky.dc.html", "Insights.dc.html", "Profile.dc.html", "Experiment.dc.html", "Welcome.dc.html", "Feel.dc.html", "Goals.dc.html", "Settings.dc.html"],
+  "notes": {
+    "t1": {"x": 0, "y": -300, "text": "Life Powers: the main screens, with sample data. Every forecast panel wears its own color.", "kind": "title1", "maxW": 3680},
+    "t2": {"x": 0, "y": 940, "text": "First run, feelings, goals, and settings", "kind": "title1", "maxW": 1800}
+  },
+  "designSystems": []
+}

@@ -10,3 +10,4 @@ Design documents:
 - [docs/DESIGN.md](docs/DESIGN.md): purpose, principles, architecture, insights, privacy, stack, roadmap, open questions
 - [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md): every device, how its data can leave the vendor, and the path the app uses
 - [docs/DATA_MODEL.md](docs/DATA_MODEL.md): canonical schema, metric catalog, event catalog, rollup rules
+- [docs/mockups/](docs/mockups/README.md): the twelve screen mockups and a link to the clickable canvas

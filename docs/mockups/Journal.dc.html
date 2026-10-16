@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Journal</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap">
+<style>
+body{margin:0;font-family:Nunito,system-ui,sans-serif;color:#3B2340}
+a{color:#3B2340;text-decoration:none}a:hover{color:#B8206F}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFF4; display: flex; flex-direction: column; overflow: hidden; position: relative">
+
+  <svg viewBox="0 0 240 150" width="220" height="136" aria-hidden="true" style="position: absolute; top: -70px; right: -60px; width: 220px; height: 136px; opacity: 0.4"><g fill="#CBB2ED"><circle cx="72" cy="92" r="42"></circle><circle cx="120" cy="66" r="56"></circle><circle cx="172" cy="88" r="46"></circle><rect x="30" y="92" width="184" height="52" rx="26"></rect></g></svg>
+
+  <div style="flex: 1 1 auto; overflow: hidden; padding: 26px 20px 0 20px; display: flex; flex-direction: column; gap: 11px; position: relative">
+
+    <div style="display: flex; justify-content: space-between; align-items: flex-end">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <div style="font-size: 13px; font-weight: 700; color: #7A6680">Thursday, October 16</div>
+        <h1 style="margin: 0; font-size: 26px; font-weight: 900; line-height: 1.15">Journal</h1>
+      </div>
+      <a href="Checkin.dc.html" style="color: #FFFFFF; background: #E6389A; border-radius: 999px; padding: 11px 18px; font-size: 14px; font-weight: 900; box-shadow: 0 10px 24px rgba(230,56,154,0.3)">Talk</a>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+      <button type="button" style="font-family: inherit; border: 0; border-radius: 20px; background: #FFFFFF; padding: 12px 4px; font-size: 12px; font-weight: 800; color: #3B2340; cursor: pointer; box-shadow: 0 10px 28px rgba(59,35,64,0.07)">Write</button>
+      <button type="button" style="font-family: inherit; border: 0; border-radius: 20px; background: #FFFFFF; padding: 12px 4px; font-size: 12px; font-weight: 800; color: #3B2340; cursor: pointer; box-shadow: 0 10px 28px rgba(59,35,64,0.07)">Photo</button>
+      <button type="button" style="font-family: inherit; border: 0; border-radius: 20px; background: #FFFFFF; padding: 12px 4px; font-size: 12px; font-weight: 800; color: #3B2340; cursor: pointer; box-shadow: 0 10px 28px rgba(59,35,64,0.07)">Pull a card</button>
+      <button type="button" style="font-family: inherit; border: 0; border-radius: 20px; background: #FFB3DD; padding: 12px 4px; font-size: 12px; font-weight: 800; color: #3B2340; cursor: pointer; box-shadow: 0 10px 28px rgba(230,56,154,0.18)">Say a symptom</button>
+    </div>
+
+    <div style="background: #FFFFFF; border-radius: 24px; padding: 13px 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 12px 32px rgba(59,35,64,0.08)">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <div style="font-size: 12px; font-weight: 800; color: #7A6680">Food, no judgment</div>
+        <div style="font-size: 11px; font-weight: 800; color: #7A6680; border: 2px dashed #CBB2ED; border-radius: 999px; padding: 3px 9px">pattern forming, 9 of 14</div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+        <button type="button" style="font-family: inherit; border: 0; border-radius: 999px; background: #FFFFF4; box-shadow: inset 0 0 0 1.5px #EFE6F4; padding: 10px 6px; font-size: 13px; font-weight: 800; color: #3B2340; cursor: pointer">Craving</button>
+        <button type="button" style="font-family: inherit; border: 0; border-radius: 999px; background: #FFFFF4; box-shadow: inset 0 0 0 1.5px #EFE6F4; padding: 10px 6px; font-size: 13px; font-weight: 800; color: #3B2340; cursor: pointer">Urge to binge</button>
+        <button type="button" style="font-family: inherit; border: 0; border-radius: 999px; background: #FFFFF4; box-shadow: inset 0 0 0 1.5px #EFE6F4; padding: 10px 6px; font-size: 13px; font-weight: 800; color: #3B2340; cursor: pointer">Binge</button>
+      </div>
+      <div style="font-size: 12px; font-weight: 600; color: #7A6680; line-height: 1.4">One tap, a slide for how strong, done. Later, if you want, what helped.</div>
+    </div>
+
+    <div style="background: #FFFFFF; border-radius: 24px; padding: 13px 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 12px 32px rgba(59,35,64,0.08)">
+      <div style="font-size: 12px; font-weight: 800; color: #7A6680">You said, 7:40 am</div>
+      <div style="font-size: 14px; line-height: 1.45; color: #4F3454">"My head is pounding and I am so bloated today."</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <span style="font-size: 13px; font-weight: 800; border-radius: 999px; background: #E6389A; color: #FFFFFF; padding: 7px 13px">headache, 5</span>
+        <span style="font-size: 13px; font-weight: 800; border-radius: 999px; background: #CBB2ED; padding: 7px 13px">bloating, 3</span>
+        <button type="button" style="font-family: inherit; font-size: 13px; font-weight: 900; border-radius: 999px; border: 0; background: #3B2340; color: #FFFFFF; padding: 7px 14px; cursor: pointer">Save both</button>
+      </div>
+    </div>
+
+    <div style="background: #FFFFFF; border-radius: 24px; padding: 13px 16px; display: flex; gap: 12px; align-items: stretch; box-shadow: 0 12px 32px rgba(59,35,64,0.08)">
+      <div style="width: 64px; flex: 0 0 64px; border-radius: 14px; background: #CBB2ED; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 8px 4px; box-shadow: inset 0 0 0 3px #FFFFFF, inset 0 0 0 4px #CBB2ED">
+        <div style="width: 22px; height: 22px; border-radius: 50%; background: #FFFFF4"></div>
+        <div style="font-size: 9px; font-weight: 900; text-align: center; line-height: 1.2">The Star</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 3px; flex: 1 1 auto">
+        <div style="font-size: 12px; font-weight: 800; color: #7A6680">Morning pull, three cards</div>
+        <div style="font-size: 15px; font-weight: 900">The Star, upright, present</div>
+        <div style="font-size: 12px; color: #4F3454; line-height: 1.4">Hope after a hard stretch. Felt right for a luteal week.</div>
+        <div style="display: flex; gap: 6px; margin-top: 2px">
+          <button type="button" style="font-family: inherit; font-size: 12px; font-weight: 800; border-radius: 999px; border: 0; background: #FFB3DD; color: #3B2340; padding: 6px 12px; cursor: pointer">Interpret for me</button>
+          <span style="font-size: 11px; font-weight: 700; color: #7A6680; align-self: center">sends the card only</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="background: #FFFFFF; border-radius: 24px; padding: 13px 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 12px 32px rgba(59,35,64,0.08)">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <div style="font-size: 12px; font-weight: 800; color: #7A6680">Yesterday, scrapbook</div>
+        <button type="button" style="font-family: inherit; font-size: 12px; font-weight: 800; border-radius: 999px; border: 0; background: #FFFFF4; box-shadow: inset 0 0 0 1.5px #EFE6F4; color: #3B2340; padding: 5px 11px; cursor: pointer">Ask about a photo</button>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+        <div style="height: 72px; border-radius: 16px; background: #B1C6E1; display: flex; align-items: flex-end; padding: 6px 8px; font-size: 10px; font-weight: 800; color: #3B2340" role="img" aria-label="Photo placeholder, the garden bed">garden bed</div>
+        <div style="height: 72px; border-radius: 16px; background: #FFB3DD; display: flex; align-items: flex-end; padding: 6px 8px; font-size: 10px; font-weight: 800; color: #3B2340" role="img" aria-label="Photo placeholder, today's face">today's face</div>
+        <div style="height: 72px; border-radius: 16px; background: #CBB2ED; display: flex; align-items: flex-end; padding: 6px 8px; font-size: 10px; font-weight: 800; color: #3B2340" role="img" aria-label="Photo placeholder, the desk">the desk</div>
+      </div>
+      <div style="font-size: 13px; line-height: 1.45; color: #4F3454">Long day, ate late and knew it. Still glad I called mom. The assistant asked how long the bed took: about two hours, and my back was fine after.</div>
+    </div>
+
+  </div>
+
+  <nav style="margin: 8px 16px 18px 16px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; background: #FFFFFF; border-radius: 999px; padding: 6px; box-shadow: 0 12px 32px rgba(59,35,64,0.12)">
+    <a href="Main.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Today</a>
+    <a href="Journal.dc.html" style="text-align: center; font-size: 12px; font-weight: 900; color: #3B2340; background: #FFB3DD; border-radius: 999px; padding: 12px 0">Journal</a>
+    <a href="Goals.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Goals</a>
+    <a href="Sky.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Sky</a>
+    <a href="Insights.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Patterns</a>
+  </nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

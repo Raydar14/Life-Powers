@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Patterns</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap">
+<style>
+body{margin:0;font-family:Nunito,system-ui,sans-serif;color:#3B2340}
+a{color:#3B2340;text-decoration:none}a:hover{color:#B8206F}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFF4; display: flex; flex-direction: column; overflow: hidden; position: relative">
+
+  <svg viewBox="0 0 240 150" width="230" height="143" aria-hidden="true" style="position: absolute; top: -70px; right: -80px; width: 230px; height: 143px; opacity: 0.4"><g fill="#CBB2ED"><circle cx="72" cy="92" r="42"></circle><circle cx="120" cy="66" r="56"></circle><circle cx="172" cy="88" r="46"></circle><rect x="30" y="92" width="184" height="52" rx="26"></rect></g></svg>
+
+  <div style="flex: 1 1 auto; overflow: hidden; padding: 30px 20px 0 20px; display: flex; flex-direction: column; gap: 12px; position: relative">
+
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <h1 style="margin: 0; font-size: 28px; font-weight: 900; line-height: 1.15">What moves your days</h1>
+      <div style="font-size: 13px; font-weight: 600; color: #7A6680; line-height: 1.4">Measured against your own usual, split by cycle phase. The surest and biggest come first.</div>
+    </div>
+
+    <div style="background: #FFFFFF; border-radius: 28px; padding: 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 14px 36px rgba(230,56,154,0.14)">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <div style="display: flex; align-items: center; gap: 8px"><div style="width: 12px; height: 12px; border-radius: 50%; background: #E6389A"></div><div style="font-size: 12px; font-weight: 800; color: #7A6680">Strong, 46 nights</div></div>
+        <div style="font-size: 11px; font-weight: 800; color: #3B2340; background: #FFB3DD; border-radius: 999px; padding: 5px 10px">same night</div>
+      </div>
+      <div style="font-size: 18px; font-weight: 900; line-height: 1.3">Phone after 10 pm cuts your deep sleep</div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+        <div style="background: #FFFFF4; border-radius: 20px; padding: 12px 14px"><div style="font-size: 11px; font-weight: 700; color: #7A6680">with late phone</div><div style="font-size: 26px; font-weight: 900; color: #8E6FC4">44 min</div></div>
+        <div style="background: #FFFFF4; border-radius: 20px; padding: 12px 14px"><div style="font-size: 11px; font-weight: 700; color: #7A6680">without</div><div style="font-size: 26px; font-weight: 900; color: #E6389A">68 min</div></div>
+      </div>
+      <div style="font-size: 13px; color: #4F3454; line-height: 1.45">Holds in every phase of your cycle.</div>
+      <div style="display: flex; gap: 8px">
+        <a href="Experiment.dc.html" style="color: #FFFFFF; background: #B8206F; border-radius: 999px; padding: 11px 18px; font-size: 13px; font-weight: 900; box-shadow: 0 8px 20px rgba(184,32,111,0.3)">Try it for a month</a>
+        <button type="button" style="font-family: inherit; color: #3B2340; background: #FFFFF4; border: 0; border-radius: 999px; padding: 11px 16px; font-size: 13px; font-weight: 800; cursor: pointer">Keep</button>
+      </div>
+    </div>
+
+    <div style="background: #FFFFFF; border-radius: 28px; padding: 18px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 12px 32px rgba(59,35,64,0.08)">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <div style="display: flex; align-items: center; gap: 8px"><div style="width: 12px; height: 12px; border-radius: 50%; background: #CBB2ED"></div><div style="font-size: 12px; font-weight: 800; color: #7A6680">Luteal only, 19 days</div></div>
+        <div style="font-size: 11px; font-weight: 800; color: #3B2340; background: #CBB2ED; border-radius: 999px; padding: 5px 10px">same evening</div>
+      </div>
+      <div style="font-size: 17px; font-weight: 900; line-height: 1.3">Late meals spike glucose more in your luteal phase</div>
+      <div style="font-size: 13px; color: #4F3454; line-height: 1.45">The same evening snack peaks 31 mg/dL higher than in your follicular phase. A known pattern, and it is yours too.</div>
+    </div>
+
+    <div style="background: #FFFFFF; border-radius: 28px; padding: 18px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 12px 32px rgba(59,35,64,0.08)">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <div style="display: flex; align-items: center; gap: 8px"><div style="width: 12px; height: 12px; border-radius: 50%; background: #FFB3DD"></div><div style="font-size: 12px; font-weight: 800; color: #7A6680">Moderate, 31 days</div></div>
+        <div style="font-size: 11px; font-weight: 800; color: #3B2340; background: #B1C6E1; border-radius: 999px; padding: 5px 10px">next morning</div>
+      </div>
+      <div style="font-size: 17px; font-weight: 900; line-height: 1.3">Short sleep shows up in your voice</div>
+      <div style="font-size: 13px; color: #4F3454; line-height: 1.45">After nights under 6.5 hours your voice runs flatter, even on mornings you call fine.</div>
+    </div>
+
+    <div style="background: #FFFFF4; border: 2px dashed #CBB2ED; border-radius: 28px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px">
+      <div style="font-size: 12px; font-weight: 800; color: #7A6680">Still forming, 16 mornings</div>
+      <div style="font-size: 15px; font-weight: 800; line-height: 1.3; color: #4F3454">Wine and morning blood pressure</div>
+      <div style="font-size: 13px; color: #7A6680; line-height: 1.45">About 5 mmHg higher after a drink. Fourteen more mornings before it counts.</div>
+    </div>
+
+  </div>
+
+  <nav style="margin: 10px 16px 18px 16px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; background: #FFFFFF; border-radius: 999px; padding: 6px; box-shadow: 0 12px 32px rgba(59,35,64,0.12)">
+    <a href="Main.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Today</a>
+    <a href="Journal.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Journal</a>
+    <a href="Goals.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Goals</a>
+    <a href="Insights.dc.html" style="text-align: center; font-size: 12px; font-weight: 900; color: #3B2340; background: #FFB3DD; border-radius: 999px; padding: 12px 0">Patterns</a>
+    <a href="Sky.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Sky</a>
+  </nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

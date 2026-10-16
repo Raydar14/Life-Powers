@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Today</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap">
+<style>
+body{margin:0;font-family:Nunito,system-ui,sans-serif;color:#3B2340}
+a{color:#3B2340;text-decoration:none}a:hover{color:#B8206F}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFF4; display: flex; flex-direction: column; overflow: hidden; position: relative">
+
+  <svg viewBox="0 0 240 150" width="240" height="149" aria-hidden="true" style="position: absolute; top: -90px; right: -70px; width: 240px; height: 149px; opacity: 0.45"><g fill="#FFB3DD"><circle cx="72" cy="92" r="42"></circle><circle cx="120" cy="66" r="56"></circle><circle cx="172" cy="88" r="46"></circle><rect x="30" y="92" width="184" height="52" rx="26"></rect></g></svg>
+  <svg viewBox="0 0 240 150" width="200" height="124" aria-hidden="true" style="position: absolute; top: 60px; left: -110px; width: 200px; height: 124px; opacity: 0.35"><g fill="#CBB2ED"><circle cx="72" cy="92" r="42"></circle><circle cx="120" cy="66" r="56"></circle><circle cx="172" cy="88" r="46"></circle><rect x="30" y="92" width="184" height="52" rx="26"></rect></g></svg>
+
+  <div style="flex: 1 1 auto; overflow: hidden; padding: 26px 20px 0 20px; display: flex; flex-direction: column; gap: 11px; position: relative">
+
+    <div style="display: flex; justify-content: space-between; align-items: flex-end">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <div style="font-size: 13px; font-weight: 700; color: #7A6680">Thursday, October 16</div>
+        <h1 style="margin: 0; font-size: 26px; font-weight: 900; line-height: 1.15">Good morning, Raya</h1>
+      </div>
+      <div style="display: flex; gap: 8px">
+        <a href="Settings.dc.html" aria-label="Settings" style="height: 40px; border-radius: 999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; padding: 0 12px; font-size: 12px; font-weight: 900; color: #7A6680; box-shadow: 0 8px 20px rgba(59,35,64,0.1)">Settings</a>
+        <a href="Profile.dc.html" aria-label="Your profile" style="width: 40px; height: 40px; border-radius: 50%; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: #B8206F; box-shadow: 0 8px 20px rgba(59,35,64,0.1)">R</a>
+      </div>
+    </div>
+
+    <div style="background: {{tierColor}}; border-radius: 28px; padding: 16px 20px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 14px 36px rgba(230,56,154,0.16), inset 0 1px 0 rgba(255,255,255,0.7)">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #7A3A6A">Today's forecast</div>
+        <div style="display: flex; gap: 4px">
+          <div style="width: 10px; height: 10px; border-radius: 50%; background: #E6389A"></div><div style="width: 10px; height: 10px; border-radius: 50%; background: #FFB3DD"></div><div style="width: 10px; height: 10px; border-radius: 50%; background: #CBB2ED"></div><div style="width: 10px; height: 10px; border-radius: 50%; background: #B1C6E1"></div><div style="width: 10px; height: 10px; border-radius: 50%; background: #FFFFF4; border: 2px dashed #CBB2ED; box-sizing: border-box"></div><div style="width: 10px; height: 10px; border-radius: 50%; background: #E6389A"></div><div style="width: 10px; height: 10px; border-radius: 50%; background: #FFB3DD; box-shadow: 0 0 0 2px #3B2340"></div>
+        </div>
+      </div>
+      <div style="font-size: 28px; font-weight: 900; line-height: 1.1">{{tierTitle}}</div>
+      <div style="font-size: 13px; line-height: 1.45; color: #4F3454">Recovery is one of your best. Glucose had a spiky night and Mercury turns retrograde today, so the whole lands just under your best.</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+      <a href="Feel.dc.html" style="text-align: center; background: #FFFFFF; border-radius: 999px; padding: 12px 6px; font-size: 13px; font-weight: 800; box-shadow: 0 8px 20px rgba(59,35,64,0.07)">How I feel</a>
+      <a href="Journal.dc.html" style="text-align: center; background: #FFFFFF; border-radius: 999px; padding: 12px 6px; font-size: 13px; font-weight: 800; box-shadow: 0 8px 20px rgba(59,35,64,0.07)">Craving</a>
+      <a href="Checkin.dc.html" style="text-align: center; background: #E6389A; color: #FFFFFF; border-radius: 999px; padding: 12px 6px; font-size: 13px; font-weight: 900; box-shadow: 0 8px 20px rgba(230,56,154,0.3)">Talk</a>
+    </div>
+
+    <div style="font-size: 12px; font-weight: 800; color: #7A6680; padding: 2px 6px 0 6px">Each panel wears its own forecast</div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+
+      <div style="background: #E6389A; color: #220C28; border-radius: 24px; padding: 13px 15px; display: flex; flex-direction: column; gap: 3px; box-shadow: 0 10px 28px rgba(230,56,154,0.25)">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800"><span>Recovery</span><span>best</span></div>
+        <div style="font-size: 30px; font-weight: 900; line-height: 1">78</div>
+        <div style="font-size: 12px; font-weight: 700">HRV 42 ms, well above usual</div>
+      </div>
+
+      <div style="background: #CBB2ED; border-radius: 24px; padding: 13px 15px; display: flex; flex-direction: column; gap: 3px; box-shadow: 0 10px 28px rgba(142,111,196,0.2)">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800"><span>Glucose</span><span>softer</span></div>
+        <div style="font-size: 30px; font-weight: 900; line-height: 1">92</div>
+        <div style="font-size: 12px; font-weight: 700; color: #4F3454">spike to 158 at 10:40 pm</div>
+      </div>
+
+      <div style="background: #FFB3DD; border-radius: 24px; padding: 13px 15px; display: flex; flex-direction: column; gap: 3px; box-shadow: 0 10px 28px rgba(230,56,154,0.14)">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800"><span>Blood pressure</span><span>good</span></div>
+        <div style="font-size: 30px; font-weight: 900; line-height: 1">118<span style="font-size: 16px; color: #7A3A6A">/76</span></div>
+        <div style="font-size: 12px; font-weight: 700; color: #4F3454">rested, 7:05 am</div>
+      </div>
+
+      <div style="background: #CBB2ED; border-radius: 24px; padding: 13px 15px; display: flex; flex-direction: column; gap: 3px; box-shadow: 0 10px 28px rgba(142,111,196,0.2)">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800"><span>Hormones</span><span>softer</span></div>
+        <div style="font-size: 22px; font-weight: 900; line-height: 1.1">Luteal, day 21</div>
+        <div style="font-size: 12px; font-weight: 700; color: #4F3454">cravings and cramps usual here</div>
+      </div>
+
+      <a href="Sky.dc.html" style="background: #B1C6E1; border-radius: 24px; padding: 13px 15px; display: flex; flex-direction: column; gap: 3px; box-shadow: 0 10px 28px rgba(109,140,180,0.2)">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800"><span>Sky</span><span>go gently</span></div>
+        <div style="font-size: 22px; font-weight: 900; line-height: 1.1">Mercury retrograde</div>
+        <div style="font-size: 12px; font-weight: 700; color: #4F3454">starts today. Moon 78 percent</div>
+      </a>
+
+      <a href="Journal.dc.html" style="background: #FFFFF4; border: 2px dashed #CBB2ED; box-sizing: border-box; border-radius: 24px; padding: 13px 15px; display: flex; flex-direction: column; gap: 3px">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800; color: #7A6680"><span>Cravings</span><span>not enough yet</span></div>
+        <div style="font-size: 22px; font-weight: 900; line-height: 1.1; color: #7A6680">9 logged</div>
+        <div style="font-size: 12px; font-weight: 700; color: #7A6680">a pattern needs about 14</div>
+      </a>
+
+    </div>
+
+    <a href="Checkin.dc.html" style="background: #CBB2ED; border-radius: 24px; padding: 13px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; box-shadow: 0 10px 28px rgba(142,111,196,0.2)">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <div style="display: flex; gap: 8px; font-size: 12px; font-weight: 800"><span>Mind and voice</span><span style="color: #5A3E78">softer</span></div>
+        <div style="font-size: 13px; line-height: 1.4; color: #4F3454">You said fine two days running. Your voice has been flatter. Worth a moment?</div>
+      </div>
+      <div style="font-size: 13px; font-weight: 900; color: #3B2340; white-space: nowrap">Say more</div>
+    </a>
+
+  </div>
+
+  <nav style="margin: 8px 16px 18px 16px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; background: #FFFFFF; border-radius: 999px; padding: 6px; box-shadow: 0 12px 32px rgba(59,35,64,0.12)">
+    <a href="Main.dc.html" style="text-align: center; font-size: 12px; font-weight: 900; color: #3B2340; background: #FFB3DD; border-radius: 999px; padding: 12px 0">Today</a>
+    <a href="Journal.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Journal</a>
+    <a href="Goals.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Goals</a>
+    <a href="Sky.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Sky</a>
+    <a href="Insights.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Patterns</a>
+  </nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tier":{"editor":"enum","default":"good","options":["best","good","not_great","likely_hard","unknown"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tier = this.props.tier ?? 'good';
+    const colors = { best: '#E6389A', good: '#FFB3DD', not_great: '#CBB2ED', likely_hard: '#B1C6E1', unknown: '#FFFFF4' };
+    const titles = { best: 'One of your best days', good: 'A good day ahead', not_great: 'A softer day', likely_hard: 'Go gently today', unknown: 'Not enough yet to say' };
+    return { tierColor: colors[tier] ?? colors.good, tierTitle: titles[tier] ?? titles.good };
+  }
+}
+</script>
+</body>
+</html>
