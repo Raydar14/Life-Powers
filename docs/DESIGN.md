@@ -1,0 +1,908 @@
+# Life Powers: Personal Health Picture
+
+A design for an app that pulls together every biometric and behavioral data stream you already
+generate, puts it on one timeline, adds a daily voice check-in that hears how you feel, and shows
+which of your daily choices actually move your numbers.
+
+Companion documents:
+
+- [Data sources and integration paths](DATA_SOURCES.md)
+- [Canonical data model](DATA_MODEL.md)
+
+---
+
+## 1. What the app is for
+
+You have ten streams of data about your body and your habits, each locked in its own vendor app or
+not captured at all:
+
+| Stream | Device | What it tells you |
+|---|---|---|
+| Sleep, HRV, resting HR, temperature, readiness | Oura Ring | Recovery and nervous system state |
+| Hormones (LH, estrogen, progesterone metabolite, FSH) | Inito monitor (assumed, see open questions) | Cycle phase, the biggest hidden variable behind everything else |
+| Steps, workouts, HR, SpO2, body composition | Galaxy Watch via Samsung Health | Activity and training load |
+| Continuous glucose | CGM (Dexcom, Stelo, or Libre) | Metabolic response to food, sleep, and stress |
+| Weight, body fat, muscle mass | Smart scale | Slow trend outcome |
+| Systolic, diastolic, pulse | Smart BP monitor | Cardiovascular outcome |
+| Phone usage by app and hour | Android usage stats | Behavior, especially late night screen time |
+| How you feel, in your words and in your voice | Daily voice check-in (built into the app) | Mood, energy, and tension, including what you do not notice yourself |
+| What you wrote, what you drew, what hurt | Journal, tarot log, spoken symptoms (built in) | Reflection, ritual, and the symptoms you would never tap into a form |
+| Weather, air, moon, ground, and sky | Open weather and geoscience feeds plus on device astronomy, keyed to your location if you allow it | The world around you as an input, and the beautiful things worth stepping outside for |
+
+None of these apps can see the others. The question you want answered is not "what was my sleep
+score" but "what did I do on the days my sleep score was good, and does that hold up over months."
+
+The app answers three questions:
+
+1. **How am I doing?** One daily view of recovery, metabolic, cardiovascular, body, and emotional
+   signals.
+2. **What drives it?** Which behaviors (bedtime, alcohol, late eating, screen time, training,
+   cycle phase) correlate with changes in each outcome, after accounting for the things that confound
+   them.
+3. **What should I try?** Self experiments the app can set up, run, and score for you.
+
+---
+
+## 2. Design principles
+
+**Local first.** Your health data lives on your phone in an encrypted database. No account, no server,
+no third party sees the combined picture. Vendor cloud APIs are called from the phone. Backups are an
+encrypted file you control.
+
+**Health Connect is the hub, vendor APIs are the enrichment.** On Android, Oura, Samsung Health,
+Dexcom and Stelo, most smart scales, and most BP monitors already write to Health Connect. Reading
+Health Connect gets you about 80 percent of the data with one permission screen and no API keys.
+Direct vendor APIs are added only where they expose something Health Connect does not (Oura readiness
+contributors and tags, Dexcom event logs, Withings body composition detail).
+
+**Behavior is first class data.** Devices measure outcomes well and causes badly. The app needs a fast
+way to log the causes: alcohol, caffeine after noon, meal times, supplements, travel, illness,
+stressful events, symptoms. Oura tags and Dexcom events import automatically. Everything else is a
+two tap entry or a sentence in the voice check-in.
+
+**Within person statistics only.** Population reference ranges are shown for context but every insight
+is computed against your own baseline. "Your HRV was 12 percent below your 30 day median" is useful.
+"Your HRV is normal for your age" is not.
+
+**Hormonal context comes from the person, not just the test strips.** Age, sex, gender, menstrual
+status, contraception, hormone therapy, and relevant medications are collected once in a profile and
+they decide which hormonal model the app runs. A person on a combined pill has no ovulatory cycle to
+label. A person in perimenopause has cycles the calendar cannot predict. A person on testosterone has
+a dosing rhythm instead of a cycle. The same hormone strip reading means different things in each
+case, and the app must know which case it is in.
+
+**Cycle phase is a dimension, not a metric.** HRV, resting HR, skin temperature, glucose, sleep, BP,
+and voice all shift predictably across a menstrual cycle. Every correlation the app computes is
+stratified by phase so a real effect is not hidden by a hormonal one, and a hormonal one is not
+mistaken for a behavioral one.
+
+**Honest about evidence.** Every insight carries a sample size, an effect size, and a confidence band.
+The app says "not enough data yet" far more often than it says "this causes that." This applies
+doubly to emotion read from voice: the app reports what changed in your voice compared with your own
+usual, never a diagnosis.
+
+---
+
+## 3. Architecture
+
+```mermaid
+flowchart TB
+    subgraph Sources
+        HC[Health Connect]
+        OURA[Oura Cloud API v2]
+        DEX[Dexcom API]
+        WITH[Withings API]
+        USAGE[Android UsageStatsManager]
+        FILES[File importers: Inito PDF, Samsung Health export, LibreView CSV]
+        MANUAL[Quick log UI]
+        VOICE[Voice check-in: microphone]
+        PROFILE[Profile: age, sex, gender, cycle, contraception, meds]
+    end
+
+    subgraph Ingestion
+        CONN[Connector layer, one adapter per source]
+        NORM[Normalizer: units, time zones, dedupe, source priority]
+        STT[On device speech to text]
+        ACOUSTIC[On device acoustic feature extraction]
+    end
+
+    subgraph Storage
+        RAW[(Raw samples, append only)]
+        CANON[(Canonical metrics)]
+        DAILY[(Daily rollups)]
+        EVENTS[(Behavior and symptom events)]
+        CHECKIN[(Voice check-ins: transcript and features)]
+    end
+
+    subgraph Analysis
+        BASE[Baselines and z scores]
+        HMODEL[Hormonal model selector]
+        PHASE[Cycle phase labeler]
+        AFFECT[Affect scorer: words and voice]
+        CORR[Correlation and lag engine]
+        EXP[Experiment runner]
+    end
+
+    subgraph UI
+        TODAY[Today view]
+        TL[Unified timeline]
+        INS[Insights feed]
+        LAB[Experiments]
+    end
+
+    HC --> CONN
+    OURA --> CONN
+    DEX --> CONN
+    WITH --> CONN
+    USAGE --> CONN
+    FILES --> CONN
+    MANUAL --> EVENTS
+    VOICE --> STT --> CHECKIN
+    VOICE --> ACOUSTIC --> CHECKIN
+    CONN --> NORM --> RAW --> CANON --> DAILY
+    EVENTS --> DAILY
+    CHECKIN --> AFFECT --> DAILY
+    PROFILE --> HMODEL --> PHASE
+    CANON --> PHASE
+    EVENTS --> PHASE
+    DAILY --> BASE --> CORR
+    PHASE --> CORR
+    DAILY --> EXP
+    CORR --> INS
+    EXP --> LAB
+    DAILY --> TODAY
+    CANON --> TL
+    CHECKIN --> TL
+```
+
+### 3.1 Connector layer
+
+Each source gets an adapter with the same interface: `sync(since)` returns normalized samples and a
+new cursor. Adapters are scheduled by WorkManager, run when the phone is charging and on Wi-Fi by
+default, and can be triggered by hand. Each adapter records its last successful sync so the Today view
+can show "Oura: synced 20 minutes ago, CGM: stale since yesterday."
+
+Health Connect has one constraint that shapes the design: an app can only read from it while in the
+foreground. The adapter therefore reads on app open and via a foreground service notification during
+scheduled syncs, using the Health Connect change log so each read is incremental.
+
+### 3.2 Normalizer
+
+The normalizer turns every vendor shape into one canonical sample: metric, value, unit, start time,
+end time, source, source record id. It handles:
+
+- Unit conversion (mg/dL vs mmol/L, kg vs lb, Celsius vs Fahrenheit deviation).
+- Time zone pinning. Every sample stores UTC plus the zone offset it was recorded in, so a trip does
+  not corrupt "bedtime."
+- Deduplication when the same measurement arrives twice, for example Oura sleep via Health Connect
+  and via the Oura API. A per metric source priority list decides which copy is canonical; the other is
+  kept in raw storage.
+- Day assignment. A "day" for sleep metrics is the night ending on that date. A "day" for glucose is
+  midnight to midnight local. The rule is stored per metric, not hard coded.
+
+### 3.3 Storage
+
+SQLite via Room with SQLCipher encryption. The tables that matter (full schema in DATA_MODEL.md):
+
+- `raw_sample`: append only, exactly what the vendor sent, for reprocessing.
+- `metric_sample`: canonical, deduplicated, one row per measurement.
+- `daily_metric`: one row per metric per day with the aggregate that metric needs (mean, min, max,
+  sum, time in range, count). This is what the insights engine reads.
+- `behavior_event`: timestamped events with a type, optional quantity, and free text. Symptoms live
+  here too.
+- `voice_checkin`: one row per recording with transcript, acoustic feature vector, and derived scores.
+- `user_profile` and `profile_change`: the person's hormonal and demographic context, with dated
+  history so a contraception change on a given date splits the analysis correctly.
+
+Expected volume for one person: CGM alone is about 100k samples per year, heart rate from the watch
+and ring together another 500k. Voice features are tiny, under 1 KB per check-in. SQLite handles this
+comfortably on a phone. Daily rollups keep the analysis queries fast regardless of raw volume.
+
+### 3.4 Analysis engine
+
+Runs on device, nightly after sync, and on demand.
+
+**Baselines.** For every daily metric: rolling 7, 30, and 90 day median and interquartile range.
+Every day gets a z score against the 30 day window. This is the unit all insights are expressed in.
+
+**Hormonal model selector.** Reads the profile and picks one of the models in section 4. The choice
+decides whether a cycle phase dimension exists at all, how the phase labeler weighs hormone strips
+versus temperature versus calendar, and which stratifications the correlation engine uses.
+
+**Cycle phase labeler.** For a naturally cycling person: uses Inito hormone values when present (LH
+surge marks ovulation, progesterone metabolite rise confirms luteal), falls back to Oura temperature
+trend and cycle length history when a cycle has no hormone tests, and uses symptom timing as weak
+supporting evidence. Produces a phase label per day plus a confidence. Other hormonal models replace
+this with the appropriate rhythm (pill pack week, injection week) or turn it off.
+
+**Day forecast.** Each morning, once the night's data has synced, the app combines the signals it
+already has into one expectation for the day: sleep duration and quality, HRV and resting HR against
+baseline, skin temperature deviation, overnight glucose, hormonal phase, yesterday's voice indices, and
+any logged illness or alcohol. The composite is a weighted mean of z scores, with weights learned from
+your own history once the correlation engine has enough data (which inputs actually predicted your
+good and bad days), and sensible defaults before that. The result is a tier, not a number, and the
+tier is a color:
+
+| Tier | Color | Meaning |
+|---|---|---|
+| Best | Hot pink, #E6389A | Everything points to one of your best days. Composite above +0.8 z. |
+| Good | Light pink, #FFB3DD | Just under your best. Composite between +0.2 and +0.8 z. |
+| Not great | Lavender, #CBB2ED | Below your usual. Composite between -0.8 and -0.2 z. |
+| Likely hard | Soft blue, #B1C6E1 | Several signals down together. Composite below -0.8 z. |
+| Not enough information | Pale cream, #FFFFF4 | Fewer than three inputs available, or no baseline yet. |
+
+The band between -0.2 and +0.2 reads as Good when the previous day was Good or Best and Not great
+otherwise, so the forecast does not flicker on an ordinary morning. Every forecast is scored against
+how the day actually went (readiness, voice, symptoms, self report) so the weights improve and the app
+can show you how often it was right.
+
+**Component forecasts.** The day forecast is a composite, and the parts keep their own tiers. Each
+panel in the app that forecasts anything is colored by its own tier, never by the day's overall tier.
+A hot pink day can hold a lavender glucose panel after a spiky night and a soft blue sky panel on the
+first day of a Mercury retrograde. The components:
+
+| Component | Inputs | Shown on |
+|---|---|---|
+| Recovery | sleep, HRV, resting HR, temperature deviation | Today |
+| Metabolic | overnight glucose, fasting glucose, yesterday's variability, late meals | Today |
+| Cardiovascular | morning BP against baseline, HRV, alcohol | Today |
+| Hormonal | phase and where you usually feel it, symptoms logged in this phase before | Today, Me |
+| Mind and voice | yesterday's voice indices, words, feel entries, sleep | Today, Journal |
+| Environment | pressure change, temperature extremes, air quality, daylight | Sky |
+| Sky and transits | moon phase against your own moon patterns, retrogrades, eclipses, geomagnetic activity, all optional | Sky |
+| Cravings | cycle phase, sleep debt, glucose dips, stress, your own craving history | Journal |
+
+Each component uses the same five tiers and colors. "Not enough information" is the honest default
+for any component with fewer than three inputs or no baseline.
+
+**Affect scorer.** Turns each voice check-in into daily affect metrics from two channels, the words
+and the sound. Section 5 describes it.
+
+**Correlation and lag engine.** For each (behavior or input metric, outcome metric) pair:
+
+1. Build the paired daily series with lags of 0, 1, and 2 days (did last night's alcohol affect
+   today's HRV, did yesterday's steps affect tonight's deep sleep).
+2. Stratify by hormonal phase where the model has one, and by weekday versus weekend.
+3. Compute Spearman correlation and a simple effect size (median outcome on days with the behavior
+   versus without, in z score units).
+4. Require a minimum of 14 paired days per stratum before anything is shown, and 30 before it is
+   shown without a "preliminary" label.
+5. Control the false discovery rate across all pairs tested so the feed does not fill with noise.
+
+**Experiment runner.** You pick a behavior and an outcome ("no screens after 9pm" and "sleep onset
+latency"). The app assigns alternating blocks of days, reminds you which condition today is, scores
+the result when enough days are in, and reports the effect in plain language with the sample size.
+
+### 3.5 UI
+
+Eight main screens plus the check-in, Feel, Settings, and Welcome.
+
+**Today.** The day forecast first: a large soft card in the tier color, one sentence on why, and a
+seven day strip of colored dots showing the week so far. Then the component panels, each tinted by its
+own tier (section 3.4): recovery (Oura readiness, HRV z score, resting HR), metabolic (overnight glucose mean,
+time in range, largest spike yesterday), cardiovascular (latest BP, 7 day trend), body (weight 7 day
+average, trend arrow), behavior (screen time yesterday, last screen use before sleep, logged events),
+hormonal phase, and how you sounded this morning compared with your usual. Each tile shows its own
+data freshness.
+
+**Check-in.** A single large record button, a rotating prompt, a 30 to 60 second recording, then a
+short reflection card: what you said, how your voice compared with your baseline, and a one tap
+confirmation of any behaviors or symptoms the transcript mentioned ("you mentioned a glass of wine
+last night, log it?").
+
+**Timeline.** Every stream on a shared time axis, zoomable from a single day to a year. A day view
+lines up glucose curve, heart rate, sleep stages, screen use blocks, check-in markers, and logged
+events so you can see that the 11pm snack produced the 2am glucose bump and the shallow sleep after
+it.
+
+**Insights.** A feed of findings ranked by effect size and confidence, each showing the paired
+scatter, the sample size, the phase breakdown, and a one line interpretation. Dismissable and
+pinnable.
+
+**Journal.** Entries, voice notes, tarot pulls, and the spoken symptom button. The daily check-in lives
+here too.
+
+**Sky and earth.** Today's weather and pressure trend, the moon, what is visible tonight, upcoming
+eclipses and showers, and recent ground activity with its distance from you.
+
+**Goals.** Goals by cadence, the habit tracker with its dot grid, and the timer.
+
+**Feel.** Texture, tempo, tint in three taps, reachable from Today and Journal.
+
+**Settings and Welcome.** The grouped settings described in section 5E and the two door first run.
+
+**Experiments.** Set up, run, and review self experiments.
+
+---
+
+## 4. Profile and hormonal context
+
+### 4.1 What the profile collects
+
+Collected once at setup, editable any time, and every change is dated so the engine knows which
+period of data each setting applies to.
+
+| Field | Why it matters |
+|---|---|
+| Date of birth | Age shapes expected HRV, resting HR, sleep architecture, BP thresholds, voice pitch, and the likelihood of perimenopause. Used for context and flag thresholds, never for scoring. |
+| Sex assigned at birth | Decides whether a menstrual cycle model is even a candidate, and which reference contexts apply. |
+| Gender identity | Stored separately from sex. Governs how the app addresses you and which features are shown, not physiology. Optional. |
+| Gender affirming hormone therapy | Type (estradiol, testosterone, blockers), route, and dosing schedule. Replaces the cycle model with a dosing rhythm. |
+| Menstrual status | Regular cycles, irregular cycles, perimenopause, postmenopause, amenorrhea, pregnant, postpartum or breastfeeding, not applicable. |
+| Typical cycle length and variability | Seeds the calendar fallback and sets how much to trust it. |
+| Date of last period start | Anchors the current cycle on day one. |
+| Contraception | None, combined pill, progestin only pill, hormonal IUD, copper IUD, implant, injection, ring, patch, other. Start and stop dates. |
+| Hormone replacement therapy | Type and schedule, for perimenopause and postmenopause. |
+| Relevant medications | Thyroid, SSRIs and SNRIs, beta blockers, stimulants, sleep aids, GLP-1 agonists. Each moves HR, HRV, BP, glucose, sleep, or weight, and a start or dose change must be a visible marker on the timeline so a shift is not misread as a behavior effect. |
+
+### 4.2 Hormonal models
+
+The selector maps the profile to one of these. Each model defines whether a phase dimension exists,
+what labels it has, and how the labeler assigns them.
+
+| Situation | Model | Phase labels | Labeler evidence, in order of weight |
+|---|---|---|---|
+| Naturally cycling, regular | Natural cycle | menstrual, follicular, ovulatory, luteal | Hormone strips, temperature pattern, symptoms, calendar |
+| Naturally cycling, irregular or perimenopause | Natural cycle, low calendar trust | same four plus unknown | Hormone strips, temperature pattern, symptoms. Calendar fallback disabled once cycle length variability exceeds a threshold. FSH trend shown as its own metric. |
+| Copper IUD | Natural cycle | same as above | same as above |
+| Combined pill, ring, or patch | Pack rhythm | active hormone week 1, 2, 3, hormone free interval | Pack calendar from the profile. Ovulation is suppressed, so LH and PdG strips are flagged as not interpretable in the usual way. Temperature pattern is expected to be flat. |
+| Progestin only pill, implant, injection, hormonal IUD | Suppressed or uncertain cycle | ovulatory cycle if hormone strips show one, otherwise no phase dimension | Hormone strips only. Some people ovulate on these methods and some do not. The labeler says "unknown" rather than guessing. Injection schedule becomes a dosing rhythm. |
+| Postmenopause, amenorrhea, no cycle, male | No cycle | none | Phase dimension off. Any hormone lab values are stored as sparse metrics and trended. |
+| Gender affirming hormones or HRT | Dosing rhythm | days since dose, bucketed | Dosing events logged as behaviors. Metrics stratified by position in the dosing interval. |
+| Pregnant or postpartum | Gestational or postpartum weeks | week number | Due date or delivery date from the profile. Many baselines reset. The app widens its confidence bands and labels this period explicitly. |
+
+### 4.3 Symptoms as hormonal cues
+
+A symptom log with severity 1 to 5: cramps, bloating, breast tenderness, headache or migraine, hot
+flashes, night sweats, mood swings, irritability, anxiety, low libido, acne, fatigue, brain fog,
+insomnia, food cravings. Symptoms can be tapped in, or spoken during the check-in and confirmed.
+
+Symptoms serve two roles. They are outcomes (what predicts a migraine day) and they are weak evidence
+for the phase labeler (premenstrual symptom clusters support a late luteal label when strips are
+missing). They also surface the person's own pattern across a cycle, so recurring luteal irritability
+is seen for what it is rather than read as a bad week.
+
+---
+
+## 5. Voice check-in
+
+### 5.1 What it does
+
+Once a day, ideally at the same time, you answer a short prompt out loud for 30 to 60 seconds. "How
+are you feeling right now?" "What is on your mind today?" "How did last night go?" The prompts rotate
+within a fixed set so recordings stay comparable.
+
+The app listens on two channels:
+
+**Words.** What you say about yourself. On device speech recognition produces a transcript. From the
+transcript the app extracts any direct self report ("I feel tired", "energy is maybe a six"), the
+behaviors and symptoms you mention, and a set of language markers that research links to mood and
+anxiety: rates of positive and negative emotion words, first person singular pronoun rate, absolutist
+words ("always", "never", "completely"), future orientation and agency words ("plan", "going to",
+"looking forward"), and hedging or worry phrases. With your explicit opt in, the transcript (never the
+audio) can also be sent to a cloud language model that returns structured ratings for energy,
+optimism, anxiety, sadness, and irritability with a quoted phrase as evidence for each. Without opt
+in, an on device lexicon scorer produces the same fields with less nuance.
+
+**Voice.** How you sound, independent of the words. On device acoustic analysis extracts a standard
+paralinguistic feature set (the extended Geneva minimalistic acoustic parameter set, 88 features, or
+an equivalent): pitch mean and range, pitch variability, loudness and loudness dynamics, speaking rate,
+articulation rate, pause count and mean pause length, voiced fraction, jitter, shimmer, harmonics to
+noise ratio, and spectral shape. An optional on device speech emotion model adds arousal and valence
+estimates.
+
+### 5.2 Why within person only
+
+Speech emotion recognition across different people is not reliable enough to tell you how you feel in
+absolute terms. Published models reach moderate accuracy on acted datasets and worse on real
+recordings, and pitch, loudness, and voice quality vary with the microphone, the room, a cold, the
+time of day, cycle phase, age, and hormonal contraception. Any app that says "you sound 72 percent
+sad" is overclaiming.
+
+What is tractable is change detection against your own voice. The design therefore:
+
+- Builds a personal baseline from your first 14 check-ins before showing any voice derived signal.
+- Recommends the same phone, the same prompt set, and roughly the same time of day.
+- Expresses every voice signal as a z score against your trailing 30 day window, exactly like every
+  other metric in the app.
+- Stratifies the baseline by hormonal phase once there is enough data, because voice pitch and
+  quality shift across a cycle.
+- Flags recordings with poor signal (background noise, very short speech, a cold logged as a symptom)
+  and excludes them from baselines.
+
+### 5.3 Derived daily metrics
+
+| Metric | Built from | Reads as |
+|---|---|---|
+| voice.energy_index | loudness, speaking rate, pitch range, composite z | Vocal energy versus your usual |
+| voice.flatness_index | reduced pitch variability, reduced loudness dynamics, slower rate, longer pauses | Markers that cluster with low mood and fatigue |
+| voice.tension_index | higher pitch mean, higher jitter and shimmer, faster rate, shorter pauses, lower harmonics to noise | Markers that cluster with arousal and anxiety |
+| voice.arousal, voice.valence | optional on device emotion model | Dimensional affect estimate, low weight |
+| words.energy_self_report | explicit statements in the transcript | What you said your energy was |
+| words.valence | emotion word balance or language model rating | How positive your description was |
+| words.optimism | future orientation and agency markers or language model rating | Forward looking versus stuck |
+| words.anxiety_markers | worry phrases, hedging, absolutist words or language model rating | Anxious language |
+| words.self_focus | first person singular rate | Inward focus, a known marker of low mood when elevated |
+
+### 5.4 The gap between words and voice
+
+The most useful signal is disagreement. When the words say fine and the voice does not, the app
+notices. The rule:
+
+- words.valence at or above your baseline, and
+- voice.flatness_index or voice.tension_index at least 1.5 standard deviations beyond your baseline,
+- on two or more of the last three check-ins.
+
+When that fires, the Today view shows a quiet card, phrased as an observation and a question, never a
+label: "You have described the last couple of days as fine. Your voice has been flatter and slower
+than usual. Worth a moment?" The card links to the timeline so you can see what else was happening
+(short sleep, luteal phase, a heavy week of screen time) and to the check-in so you can say more if
+you want to.
+
+The same mechanism works in the other direction: a tense voice on days you report feeling calm, or a
+sustained lift in vocal energy during an experiment you are running.
+
+### 5.5 How it joins the rest of the app
+
+Every voice and words metric enters the daily rollup like any other metric. The correlation engine
+then answers questions such as: what predicts a flat voice day (short sleep, low HRV, late screen
+time, luteal phase, high overnight glucose), and what follows a tense voice day (higher morning BP,
+worse sleep that night). Voice metrics are both outcomes and inputs.
+
+Behaviors and symptoms spoken in the check-in are offered for one tap confirmation and then stored as
+events, so the check-in doubles as the fastest way to log.
+
+### 5.6 Safety and limits
+
+- The app is not a clinical instrument and says so in the check-in screen. Signals are observations
+  about change in your own voice and language, not diagnoses.
+- If a transcript contains language about self harm or crisis, the app shows crisis resources
+  immediately and plainly, outside the chart and insight machinery, and does not score that recording
+  as a data point.
+- Raw audio is processed on the phone. By default the audio file is deleted once the transcript and
+  feature vector are stored. You can choose to keep encrypted audio. Nothing leaves the device unless
+  you opt in to cloud transcript analysis, and that opt in sends text only.
+- The check-in is skippable. A missed day is a missing value, not a penalty.
+
+---
+
+## 5A. Journal, tarot, and spoken symptoms
+
+### Journal
+
+A plain place to write or talk. An entry is text, a voice note transcribed on the phone, or both. Entries
+attach to a day, can carry tags, and can hold a tarot pull. The same language markers the check-in uses
+(emotion words, self focus, future orientation) run over journal text when you want them to, so a long
+entry on a hard day enriches the words channel rather than sitting apart from it. Entries are never
+scored for affect unless you turn that on, and they are never sent anywhere.
+
+### Tarot log
+
+A record of cards pulled: deck, spread name, position in the spread, the card, upright or reversed,
+and a note on what it meant to you. Pulls appear on the timeline as a moment and in the journal entry
+they belong to. Over time the app can show, descriptively, which cards have turned up on which kinds
+of days and in which cycle phases, framed as a mirror for reflection rather than a prediction. A
+pull is a ritual and a prompt, and the app treats it that way: the card's own meaning text is yours to
+write or import, and the app does not supply interpretations.
+
+### Cravings, urges, and binges
+
+One quick button, always within reach on the Journal and Today screens, with three gentle choices:
+craving, urge to binge, binge. Each takes an intensity from 1 to 5 by a slide, an optional food or
+situation word, and nothing else at the moment. The app never asks what you ate or how much. Later, if
+you want, a soft follow up asks what helped or what made it harder, and that becomes part of your own
+pattern. Cravings join the correlation engine as outcomes, so the app can show whether yours follow
+short sleep, glucose dips two hours after a meal, the late luteal phase, or high stress days. The
+cravings component forecast uses that history to color its own panel. Language throughout is neutral
+and the counts are never shown as a streak or a score.
+
+### Interpreting a card, if you want
+
+Next to any pull is a button to ask for an interpretation. It appears only when AI features are on.
+The request sends the card, its orientation, its spread position, and, if you choose, your own note
+and today's forecast tier. It never sends health measurements. The response is written as reflection
+prompts and the card's traditional meanings rather than a prediction, and it is saved beneath the pull
+with a clear mark that it came from the assistant.
+
+### Photos as a scrapbook
+
+A journal entry can hold photos: what you did, how you look, what you worked on, where you were. They
+are stored encrypted on the phone beside the entry and show on the timeline as small rounded tiles.
+With AI features on, you can ask the assistant to look at a photo and help you document it. It replies
+with two or three questions ("Is this the garden bed from last week? How long did you work on it?")
+and writes your answers into the entry, so the record is richer than a caption without you typing a
+paragraph. Photos are sent only when you tap that button, one at a time, and never otherwise.
+
+### Symptoms by speaking
+
+A long press on the Journal tab, or a sentence inside any check-in, logs symptoms without a form. "My
+head is pounding and I am so bloated" becomes headache at severity 4 and bloating at severity 3, shown
+as two chips for a one tap confirm. Severity comes from intensity words (a little, some, bad, awful,
+pounding, the worst) mapped to 1 to 5, and defaults to 3 when none is present. The symptom catalog in
+DATA_MODEL.md is the vocabulary; unknown words are offered as a new symptom kind rather than dropped.
+
+---
+
+## 5B. Earth and sky
+
+### What it adds
+
+The world outside the body as context and as input. Weather, air quality, moon phase, geomagnetic
+activity, nearby seismic and volcanic events, and the sky events worth stepping outside for.
+
+| Layer | Data | Why it is in a health app |
+|---|---|---|
+| Weather | Temperature, humidity, barometric pressure and its 24 hour change, wind, cloud cover, daylight hours, UV | Pressure swings and heat are well known migraine and sleep inputs. Daylight hours move mood and sleep timing. |
+| Air quality | PM2.5, ozone, pollen where available | Breathing, sleep, and headache input. |
+| Moon | Phase, illumination, moonrise and moonset, supermoon and micromoon | A rhythm many people track. Research on moon and sleep is mixed and small, so the app lets your own data speak. |
+| Space weather | Planetary K index, aurora probability at your latitude | An aurora alert is one of the best reasons to go outside at night. |
+| Ground | Earthquakes with magnitude and distance from you, volcanic activity reports, both filtered to the Ring of Fire and to anything within your chosen radius | Awareness, and a context marker for sleep or anxiety on a night the ground moved. |
+| Sky | Solar and lunar eclipses visible from your location with local times, meteor shower peaks with the moon's interference noted, planets visible to the naked eye and when, close pairings of planets and the moon, International Space Station passes | Cool things happening. The app tells you the evening before. |
+| Transits, optional | Mercury and other retrograde periods with start and end dates, the moon's sign, new and full moon signs, major planetary alignments | Many people track these. The app computes the astronomy on the phone and lets you decide whether the meaning matters to you. Off by default, one switch to turn on. |
+
+### Location
+
+Earth and sky need a place. The app offers four choices and works with any of them:
+
+1. Precise device location, refreshed daily.
+2. Approximate device location, rounded to about 10 km.
+3. A city you type in Settings, never read from the device.
+4. No location. Moon phase, global eclipses, and meteor shower dates still work. Weather, ground
+   distance, and local visibility do not.
+
+Whatever the choice, the coordinate sent to a weather or air quality service is rounded to one decimal
+place, about 10 km, so the service learns your town and not your street. Earthquake and volcano feeds
+are fetched globally and filtered on the phone, so those services learn nothing. Moon, eclipse, planet,
+and meteor calculations run on the phone from bundled astronomy routines and tables, with no network
+call at all.
+
+### Sources
+
+| Layer | Source | Notes |
+|---|---|---|
+| Weather and air | Open-Meteo forecast, historical, and air quality endpoints | Free, no key, no account. Hourly history back years, which lets the app backfill pressure and daylight for every day already in your timeline. |
+| Moon, planets, eclipses | Astronomy Engine, on device | Open source, available for Kotlin. Computes positions, rise and set, phases, and eclipse circumstances for your coordinate. |
+| Meteor showers | Bundled International Meteor Organization calendar | Updated yearly with the app. Peak dates, rates, and radiant. |
+| Space weather | NOAA Space Weather Prediction Center K index and aurora forecast | Free feed, polled a few times a day. |
+| Earthquakes | USGS Earthquake Hazards Program GeoJSON feeds | Free, near real time, global. The app keeps magnitude 4.5 and above worldwide and anything 2.5 and above within your radius. |
+| Volcanoes | Smithsonian Global Volcanism Program weekly report and USGS Volcano Hazards alerts | Weekly worldwide activity. The Ring of Fire is a bundled list of volcanoes to match against. |
+| Transits | Astronomy Engine, on device | Retrograde is apparent backward motion in ecliptic longitude, and a sign is a 30 degree slice of that longitude, so both fall out of the same positions used for planet visibility. No network call. |
+
+### How it joins the analysis
+
+Pressure change, daylight hours, temperature, air quality, moon illumination, and K index enter the
+daily rollup as metrics and the correlation engine treats them like any other input. The app can then
+tell you whether your migraines follow pressure drops, whether short winter days flatten your voice,
+and whether full moons cost you sleep, each against your own baseline and with the usual sample size
+rules. Ground events and sky events are moments on the timeline, not metrics.
+
+### Telling you about cool things
+
+A quiet evening notice when something is worth seeing: "Orionids peak tonight, best after 1 am, the
+moon sets at 11 so skies will be dark." "Partial lunar eclipse Tuesday, starts 9:14 pm from where you
+are." "Venus and Jupiter a finger apart at dusk this week." "Aurora possible tonight at your latitude."
+Each category can be turned on or off. Ground events notify only above a magnitude and within a
+distance you set, and never with alarm language.
+
+---
+
+## 5C. Goals and habits
+
+### Goals
+
+A Goals tab. A goal has a name, a cadence (daily, weekly, monthly, yearly), an optional target
+("three times", "ten minutes", "by June"), and a reminder schedule. The app does the reminding, with
+quiet notices at times you choose and a gentle check in when a period closes ("the week is ending,
+two of three walks done"). Progress is tracked per period and shown as soft filled circles, one per
+period, in the forecast colors: hot pink for met, light pink for mostly, lavender for started, pale
+for untouched. There is no shame state; a missed period is simply pale.
+
+### Habits
+
+A goal that repeats becomes a habit, and every habit links to the built in habit tracker. The tracker
+shows the current run, the last four weeks as a grid of dots, and a one tap check. Where the data
+already knows, the check happens by itself: a steps goal confirms from the watch, a phone down goal
+from usage stats, a bedtime goal from Oura, a workout from Samsung Health, a daily check in from the
+journal. Manual habits (meditation, stretching, reading, water) take a tap or a word in the check in.
+
+### Timer
+
+The habit tracker has a timer. Pick a habit, pick a length or leave it open, and start. The screen
+goes calm, shows the time in large type, and nothing else. Stopping logs the session against the
+habit with its real duration. A timer can run in the background with a quiet notice, and the session
+becomes a moment on the timeline so it joins the correlation engine (does meditating before bed
+lengthen deep sleep for you).
+
+### Linking goals to the rest
+
+A goal can point at a metric and the app will watch it for you: "resting heart rate under 58 by
+spring" or "deep sleep over an hour most nights." Experiments can be started from a goal, and an
+insight can be turned into a goal in one tap.
+
+---
+
+## 5D. How you feel, said your way
+
+The usual mood list (happy, sad, angry, worried, irritable) is a clinician's vocabulary, and people
+rarely talk about themselves that way. They say they are fried, wired, heavy, floaty, cozy, flat,
+tangled, running on empty, buzzing, raw. The app builds on that.
+
+### Texture, tempo, tint
+
+Three quick taps, each optional, each under two seconds.
+
+**Texture** is the word. A ring of everyday words rather than emotion labels: cozy, light, steady,
+full, floaty, buzzing, wired, fried, heavy, foggy, flat, hollow, tangled, raw, tender, scratchy,
+numb, open. Tap one or two. Add your own word any time; it joins your ring.
+
+**Tempo** is the speed you are running at: slow, easy, quick, racing. One tap on a short slider.
+
+**Tint** is a color. Drag a dot anywhere on a soft field blended from the app's palette and pick the
+color that feels like today. No label, no right answer. Over months the app shows you your tints as a
+strip, and that alone is often the clearest picture of a season.
+
+### Your own vocabulary
+
+The check-in transcripts and journal entries are mined for the feeling words you actually use ("I'm so
+done", "kind of fizzy today", "a lot"), and those phrases are offered as texture chips in your own
+words. The ring becomes yours within a few weeks. Words you never pick fade to the back.
+
+### What the engine does with it
+
+Every texture word, including yours, carries hidden coordinates on two axes the engine understands
+(energy and ease), set once from the word's meaning and refined from your own usage. Tempo adds a
+third. Tint is stored as hue and lightness. None of this is shown as a score; it lets the correlation
+engine treat how you feel like any other daily metric and lets the voice channel be compared with the
+words you chose. The gap card in section 5.4 uses feel entries alongside the transcript.
+
+---
+
+## 5E. Assistant features, settings, and onboarding
+
+### The assistant and the switch
+
+Everything that sends anything off the phone to a language model is an assistant feature: card
+interpretation, photo questions, richer transcript ratings, the weekly narrative. One master switch in
+Settings turns all of them off, and each has its own switch beneath it. With the master switch off,
+the buttons disappear rather than greying out, and nothing is queued for later. The default on first
+run is off. Every assistant call shows what it is about to send before it sends it.
+
+### Settings
+
+Settings is large on purpose, grouped so it does not feel large:
+
+- Connections: each device and account, its sync state, and a disconnect.
+- Profile and hormones: everything in section 4.
+- Location and world: the four location choices, radius and magnitude for ground notices, each sky
+  notice category, the transits switch.
+- Journal: audio keeping, journal affect scoring, photo storage, symptom vocabulary.
+- Feelings: your texture ring, words to add or retire, tint field on or off.
+- Goals and reminders: quiet hours, reminder style, timer sound.
+- Assistant: the master switch and the per feature switches, with a plain description of what each
+  one sends.
+- Forecast: thresholds, which components show on Today, the colors (fixed, but shown).
+- Privacy and data: export, backup, delete everything, what has ever left the phone.
+- Appearance: text size, reduced motion, left or right handed controls.
+
+### Onboarding, now or later
+
+The first screen offers two doors. "Set me up properly" takes ten to fifteen minutes and walks
+through connections, profile, location, feelings ring, goals, and the assistant switch, each as a
+short module you can leave and return to. "Let me play first" opens the app with sample data labeled
+as sample, every feature touchable, and a small soft card on Today that says what is still unset and
+offers one module at a time. Progress is saved per module, so doing the profile tonight and the
+connections on Sunday is fine. Nothing nags: one card, one line, and it goes quiet once everything
+that matters is set.
+
+---
+
+## 6. Insights the data can actually support
+
+Grouped by outcome, with the inputs the app has for each. These are the concrete analyses the
+engine runs, not aspirations.
+
+**Sleep and recovery (Oura).**
+Inputs: last screen use time, total evening screen time, alcohol, caffeine after noon, last meal
+time, workout timing and intensity (watch), steps, bedtime consistency, hormonal phase, evening
+glucose, prior day voice tension.
+Outcomes: HRV, resting HR, deep and REM minutes, sleep onset latency, readiness, skin temperature
+deviation.
+
+**Glucose (CGM).**
+Inputs: meal events, sleep duration and quality the night before, workout timing, steps in the two
+hours after a meal, stress score, hormonal phase (luteal insulin resistance is measurable).
+Outcomes: overnight mean, fasting glucose, post meal peak and return time, time in range, glucose
+variability.
+
+**Blood pressure.**
+Inputs: sleep the night before, alcohol, sodium if logged, workout, HRV, weight trend, hormonal
+phase, time of day of the reading, voice tension that morning.
+Outcomes: morning systolic and diastolic, weekly mean, reading to reading variability. BP readings
+are sparse, so this analysis uses weekly aggregates and needs months of data.
+
+**Mood, energy, and tension (voice check-in).**
+Inputs: sleep metrics, HRV, resting HR, steps, workouts, screen time, alcohol, caffeine, glucose
+variability, hormonal phase, symptoms, medication changes, daylight hours, pressure change, air quality.
+Outcomes: voice.energy_index, voice.flatness_index, voice.tension_index, words.valence,
+words.optimism, and the words versus voice gap.
+
+**Cravings and urges.**
+Inputs: sleep debt, glucose dips and spikes, hours since last meal, stress score, voice tension, cycle
+phase, screen time, alcohol the night before.
+Outcomes: craving, urge to binge, and binge events and their intensity.
+
+**How you feel.**
+Inputs: everything above, plus daylight, pressure, moon, and goals met.
+Outcomes: texture energy and ease, tempo, tint lightness and hue.
+
+**Headaches and other symptoms.**
+Inputs: barometric pressure 24 hour change, temperature, humidity, air quality, sleep, hormonal phase,
+alcohol, caffeine, screen time, glucose variability.
+Outcomes: headache and migraine days and severity, and every other symptom kind as its own outcome.
+
+**Body composition.**
+Inputs: weekly averages of everything above.
+Outcomes: 7 day weight average, body fat trend, muscle mass trend. Daily weight is noise, so the
+app never shows a single day's weight as a finding.
+
+**Hormones as a lens, not an outcome.**
+The hormone stream is used mostly to label phase. The app also shows your own HRV, temperature,
+resting HR, sleep, glucose, voice, and symptom profile across an average cycle or dosing interval, so
+you learn your personal pattern and stop reading luteal phase changes as problems.
+
+---
+
+## 7. Visual language
+
+The app should feel soft, round, and pleasing to hold, closer to a well made object than a dashboard.
+
+**Palette.** Five colors, and they carry meaning rather than decoration.
+
+| Color | Hex | Role |
+|---|---|---|
+| Hot pink | #E6389A | Best forecast tier. Large numerals and headlines. Never small body text, since it does not reach 4.5 to 1 contrast on light grounds. |
+| Light pink | #FFB3DD | Good forecast tier. Secondary buttons, selected states, soft highlights. |
+| Lavender | #CBB2ED | Not great forecast tier. Hormonal phase chip, sleep stage fills. |
+| Soft blue | #B1C6E1 | Likely hard forecast tier. Phone use blocks, cool accents. |
+| Pale cream | #FFFFF4 | Not enough information tier, and the ground every screen sits on. |
+
+Two derived tones keep text readable: a deep plum ink, #3B2340, for all text, and a deep pink,
+#B8206F, for filled primary buttons that carry white text. Both are darker versions of the palette,
+not new colors.
+
+**Color follows the thing it describes.** A panel's tint is the tier of what that panel forecasts.
+The day card wears the day's tier, the glucose panel wears the metabolic tier, the moon panel wears the
+sky tier. Two panels on one screen can disagree, and that disagreement is information. Panels that do
+not forecast anything stay white.
+
+**Shape and texture.** Corner radius 28 px on cards and 999 px on buttons, chips, and the floating
+bottom bar. Soft layered shadows in plum at low opacity so cards sit slightly above the ground. No
+hard rules or dividers; spacing and tint do the separating. Charts use rounded line caps and filled
+areas rather than thin wires. Behind the content of every screen sit one to three soft clouds in the
+palette colors at low opacity, drifting off the edges, so the ground never reads as flat white.
+
+**Type.** One rounded sans serif family (Nunito) at weights from 500 to 900. Large numbers are heavy
+and friendly. Nothing is set in all caps except tiny labels.
+
+**No icons.** Labels are words. Status is color and shape.
+
+---
+
+## 8. Privacy and security
+
+- All data encrypted at rest on device with a key held in the Android Keystore.
+- No analytics, no crash reporting that includes health data, no network calls except to the vendor
+  APIs you connect and, if opted in, the transcript analysis service.
+- OAuth tokens stored in the Keystore backed EncryptedSharedPreferences.
+- Audio processed on device and deleted by default after feature extraction.
+- Assistant features are off by default behind one master switch. Each call shows what it will send
+  first. Card interpretation sends card details only. Photo questions send one photo at a time, on tap.
+- Photos are stored encrypted beside their journal entries and are never uploaded except by that tap.
+- Location is optional, can be typed instead of read from the device, and is rounded to about 10 km
+  before any weather or air quality request. Astronomy runs on the phone. Earthquake and volcano feeds
+  are global and filtered locally.
+- Export at any time to CSV or JSON. Delete everything with one action.
+- Backups are an encrypted archive you save to your own Drive or a cable. The app never holds a
+  cloud copy.
+- If the app is ever extended to other people (clients, family), that is a different product with
+  consent flows, per user encryption, and possibly HIPAA obligations. The voice check-in in
+  particular would need clinical review before being offered to clients. Design for one user now and
+  do not let that boundary blur.
+
+---
+
+## 9. Recommended stack
+
+| Layer | Choice | Why |
+|---|---|---|
+| Platform | Android, Kotlin, Jetpack Compose | Health Connect and UsageStatsManager are Android native. Galaxy Watch rules out iOS as primary. |
+| Storage | Room over SQLCipher | Encrypted, offline, well supported. |
+| Background work | WorkManager plus a foreground sync service | Health Connect reads need foreground. |
+| Health Connect | androidx.health.connect client | Covers Oura, Samsung Health, Dexcom, Stelo, scales, BP cuffs. |
+| Vendor APIs | Oura v2 (personal access token), Dexcom (OAuth), Withings (OAuth) | Only for data Health Connect lacks. |
+| Speech to text | Android on device SpeechRecognizer, or whisper.cpp with a small model bundled | Offline, no audio leaves the phone. |
+| Acoustic features | openSMILE compiled for Android (eGeMAPS), or a Kotlin port of the needed features | openSMILE's license permits research and personal use; a commercial release would need a license or the Kotlin port. |
+| Speech emotion model | Optional TensorFlow Lite model for arousal and valence | Low weight signal, can ship later. |
+| Transcript interpretation | On device lexicon scorer by default. Optional cloud language model (Claude Opus 5.5, model id claude-opus-5-5) with explicit opt in, transcript only. | Nuance when wanted, privacy by default. |
+| Charts | Vico or a Compose Canvas layer | Timeline needs a custom shared axis. |
+| Statistics | Pure Kotlin, Apache Commons Math for rank correlation and FDR | Small enough to run nightly on device. |
+| Hormonal models | Rule based, see section 4 | Transparent beats a black box for your own body. |
+
+Alternative: Flutter would allow an iOS build later, but Health Connect and usage stats would still
+require Android platform channels, and the iOS versions (HealthKit, Screen Time API) have a different
+and more restrictive shape. Build native Android first.
+
+A backend is not required. Oura personal access tokens and Dexcom's OAuth can be completed on the
+phone. The one case that needs a public URL is Oura or Withings webhooks, and polling every few hours
+is good enough for a personal app.
+
+---
+
+## 10. Roadmap
+
+There is no preparation phase. You install the app, connect your accounts, fill in the profile, and
+record your first check-in. Everything else accumulates on its own.
+
+**What the first month feels like.**
+
+- Day 1: Oura history back to the day you got the ring arrives through the Oura API. Health Connect
+  supplies the recent history it holds for the watch, CGM, scale, and cuff, and more when the app is
+  granted the history read permission. The profile is set. The timeline is already populated. First
+  voice check-in recorded.
+- Day 7: Baselines exist for every metric with daily data. The Today view shows z scores and the
+  first day forecast in color. Screen time
+  has a week of history. The voice baseline is half built.
+- Day 14: Voice baseline complete, voice signals appear on the Today view. First preliminary
+  insights appear for behaviors you have logged at least a handful of times.
+- Day 30: Insights lose the preliminary label. First full hormonal cycle labeled if you are cycling.
+  First experiment can be started with a real baseline behind it.
+
+**Phase 1, six to eight weeks: foundation.**
+Android app, encrypted store, profile and hormonal model selector, Health Connect adapter for every
+type it carries, Oura API adapter for readiness contributors and tags, UsageStats adapter for screen
+time, quick log for behaviors and symptoms, voice check-in with on device transcription and acoustic
+features, Today and Timeline screens, daily rollups and baselines, the day forecast with its five tier colors,
+the words versus voice gap card.
+
+**Phase 2, four weeks: hormonal context, insights, journal, and sky.**
+Inito PDF importer and manual hormone entry, full phase labeler across all hormonal models,
+correlation engine with lags and stratification, Insights feed, cycle or dosing interval overlay
+view. Journal with voice notes, tarot log, spoken symptoms, cravings button, photos. Feel picker and
+personal vocabulary. Goals, habit tracker, timer. Component forecasts coloring their own panels.
+Location settings, weather and air backfill, moon, sky, and transit computations, earthquake and
+volcano feeds, evening sky notices. Settings and the two door onboarding.
+
+**Phase 3, four weeks: experiments and depth.**
+Experiment runner. Assistant features behind the master switch: card interpretation, photo questions,
+richer transcript ratings. Optional speech emotion model.
+CGM vendor API for event data if using Dexcom. Withings API if the scale or cuff is Withings.
+Encrypted backup and restore. Export.
+
+**Later.** Optional iOS build, optional sharing of a PDF summary with a clinician, optional weekly
+narrative written from the insights table (never from raw data, and only on device or with explicit
+opt in).
+
+---
+
+## 11. Open questions
+
+These change the integration work, not the architecture. Answer them in any order.
+
+1. **Hormone monitor.** "Intuit hormone data" is read here as the Inito fertility monitor, which
+   measures LH, estrogen (E3G), progesterone metabolite (PdG), and FSH from urine strips. If it is a
+   different device (Mira, Proov, a lab panel), the import path changes. Inito has no public API and
+   exports a PDF report from the Chart screen, so the plan is a PDF parser plus manual entry.
+2. **Which CGM.** Dexcom G7 and Stelo write to Health Connect (with roughly a three hour delay on
+   Stelo) and Dexcom has a public API with meal and exercise events. Abbott Libre 3 does not have a
+   confirmed Health Connect integration and LibreView offers CSV export only, so the plan would be a
+   CSV importer. Knowing the brand picks the adapter.
+3. **Scale and BP cuff brands.** Withings has a full public API with webhooks. Most other brands
+   (Renpho, Eufy, Omron, Qardio) reach the app through Health Connect only. Both work, the question is
+   whether body composition detail beyond weight and body fat is available.
+4. **Phone.** The design assumes an Android phone paired with the Galaxy Watch. If you carry an
+   iPhone as well, screen time and some device syncs split across two phones and the design needs a
+   second ingestion path.
+5. **Who uses it.** This is designed for one person. If the intent is a tool for your practice or your
+   clients, section 8 applies and the roadmap gains a consent and multi user phase before Phase 1.
+6. **Cloud transcript analysis.** Do you want the opt in cloud option built at all, or should the
+   words channel stay fully on device? On device is less nuanced but needs no trust decision.

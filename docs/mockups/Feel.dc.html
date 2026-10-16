@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>How you feel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap">
+<style>
+body{margin:0;font-family:Nunito,system-ui,sans-serif;color:#3B2340}
+a{color:#3B2340;text-decoration:none}a:hover{color:#B8206F}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFF4; display: flex; flex-direction: column; overflow: hidden; position: relative">
+
+  <svg viewBox="0 0 240 150" width="240" height="149" aria-hidden="true" style="position: absolute; top: -80px; left: -80px; width: 240px; height: 149px; opacity: 0.4"><g fill="#FFB3DD"><circle cx="72" cy="92" r="42"></circle><circle cx="120" cy="66" r="56"></circle><circle cx="172" cy="88" r="46"></circle><rect x="30" y="92" width="184" height="52" rx="26"></rect></g></svg>
+
+  <div style="flex: 1 1 auto; overflow: hidden; padding: 30px 20px 0 20px; display: flex; flex-direction: column; gap: 14px; position: relative">
+
+    <div style="display: flex; justify-content: space-between; align-items: flex-end">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <div style="font-size: 13px; font-weight: 700; color: #7A6680">Right now</div>
+        <h1 style="margin: 0; font-size: 28px; font-weight: 900; line-height: 1.15">How are you, in your words?</h1>
+      </div>
+      <a href="Main.dc.html" style="font-size: 12px; font-weight: 900; color: #B8206F; padding-bottom: 6px">Skip</a>
+    </div>
+
+    <div style="background: #FFFFFF; border-radius: 28px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 12px 32px rgba(59,35,64,0.08)">
+      <div style="display: flex; justify-content: space-between; align-items: baseline">
+        <div style="font-size: 12px; font-weight: 800; color: #7A6680">Texture, pick one or two</div>
+        <div style="font-size: 11px; font-weight: 700; color: #7A6680">your words first</div>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <sc-for list="{{words}}" as="w" hint-placeholder-count="12">
+          <button type="button" onClick="{{w.pick}}" style="{{w.style}}">{{w.label}}</button>
+        </sc-for>
+        <button type="button" style="font-family: inherit; font-size: 14px; font-weight: 800; border-radius: 999px; border: 2px dashed #CBB2ED; background: transparent; color: #7A6680; padding: 8px 14px; cursor: pointer">my own word</button>
+      </div>
+    </div>
+
+    <div style="background: #FFFFFF; border-radius: 28px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 12px 32px rgba(59,35,64,0.08)">
+      <div style="font-size: 12px; font-weight: 800; color: #7A6680">Tempo, how fast are you running</div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; background: #FFFFF4; border-radius: 999px; padding: 5px; box-shadow: inset 0 1px 3px rgba(59,35,64,0.1)">
+        <sc-for list="{{tempos}}" as="t" hint-placeholder-count="4">
+          <button type="button" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="background: #FFFFFF; border-radius: 28px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 12px 32px rgba(59,35,64,0.08)">
+      <div style="display: flex; justify-content: space-between; align-items: baseline">
+        <div style="font-size: 12px; font-weight: 800; color: #7A6680">Tint, the color today feels like</div>
+        <div style="font-size: 11px; font-weight: 700; color: #7A6680">no right answer</div>
+      </div>
+      <div style="position: relative; height: 150px; border-radius: 24px; background: linear-gradient(135deg, #E6389A 0%, #FFB3DD 30%, #FFFFF4 50%, #CBB2ED 72%, #B1C6E1 100%); box-shadow: inset 0 2px 6px rgba(59,35,64,0.12)" role="img" aria-label="A soft color field from hot pink through light pink and cream to lavender and soft blue, with a dot placed in the light pink area">
+        <div style="position: absolute; left: 34%; top: 42%; width: 28px; height: 28px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 0 0 3px #3B2340, 0 8px 18px rgba(59,35,64,0.3)"></div>
+      </div>
+      <div style="display: flex; gap: 4px; align-items: center">
+        <div style="font-size: 11px; font-weight: 700; color: #7A6680; margin-right: 6px">Your last two weeks</div>
+        <div style="width: 14px; height: 14px; border-radius: 50%; background: #FFB3DD"></div>
+        <div style="width: 14px; height: 14px; border-radius: 50%; background: #F49BCB"></div>
+        <div style="width: 14px; height: 14px; border-radius: 50%; background: #E6389A"></div>
+        <div style="width: 14px; height: 14px; border-radius: 50%; background: #FFD6EA"></div>
+        <div style="width: 14px; height: 14px; border-radius: 50%; background: #CBB2ED"></div>
+        <div style="width: 14px; height: 14px; border-radius: 50%; background: #B1C6E1"></div>
+        <div style="width: 14px; height: 14px; border-radius: 50%; background: #BFBDE6"></div>
+        <div style="width: 14px; height: 14px; border-radius: 50%; background: #FFFFF4; border: 1.5px solid #EFE6F4; box-sizing: border-box"></div>
+        <div style="width: 14px; height: 14px; border-radius: 50%; background: #FFB3DD"></div>
+        <div style="width: 14px; height: 14px; border-radius: 50%; background: #FFC9E3"></div>
+        <div style="width: 14px; height: 14px; border-radius: 50%; background: #E6389A"></div>
+        <div style="width: 14px; height: 14px; border-radius: 50%; background: #CBB2ED"></div>
+        <div style="width: 14px; height: 14px; border-radius: 50%; background: #D9BFE8"></div>
+        <div style="width: 14px; height: 14px; border-radius: 50%; background: #FFB3DD"></div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px">
+      <a href="Checkin.dc.html" style="flex: 1 1 auto; text-align: center; color: #3B2340; background: #FFFFFF; border-radius: 999px; padding: 14px; font-size: 14px; font-weight: 800; box-shadow: 0 8px 20px rgba(59,35,64,0.08)">Say more</a>
+      <a href="Main.dc.html" style="flex: 1.4 1 auto; text-align: center; color: #FFFFFF; background: #B8206F; border-radius: 999px; padding: 14px; font-size: 14px; font-weight: 900; box-shadow: 0 8px 20px rgba(184,32,111,0.3)">That's me today</a>
+    </div>
+
+  </div>
+
+  <nav style="margin: 10px 16px 18px 16px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; background: #FFFFFF; border-radius: 999px; padding: 6px; box-shadow: 0 12px 32px rgba(59,35,64,0.12)">
+    <a href="Main.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Today</a>
+    <a href="Journal.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Journal</a>
+    <a href="Goals.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Goals</a>
+    <a href="Sky.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Sky</a>
+    <a href="Insights.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Patterns</a>
+  </nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { picked: ['foggy'], tempo: 2 };
+  }
+  renderVals() {
+    const base = 'font-family: inherit; font-size: 14px; font-weight: 800; border-radius: 999px; border: 0; padding: 9px 14px; cursor: pointer;';
+    const mine = ['so done', 'fizzy', 'a lot'];
+    const builtin = ['cozy', 'light', 'steady', 'full', 'floaty', 'buzzing', 'wired', 'fried', 'heavy', 'foggy', 'flat', 'hollow', 'tangled', 'raw', 'tender', 'open'];
+    const all = mine.map((w) => ({ w, own: true })).concat(builtin.map((w) => ({ w, own: false })));
+    const words = all.map(({ w, own }) => {
+      const on = this.state.picked.includes(w);
+      const bg = on ? '#E6389A' : (own ? '#FFB3DD' : '#FFFFF4');
+      const color = on ? '#FFFFFF' : '#3B2340';
+      const shadow = on ? ' box-shadow: 0 8px 18px rgba(230,56,154,0.3);' : (own ? '' : ' box-shadow: inset 0 0 0 1.5px #EFE6F4;');
+      return {
+        label: w,
+        style: base + ' background: ' + bg + '; color: ' + color + ';' + shadow,
+        pick: () => {
+          const has = this.state.picked.includes(w);
+          let next = has ? this.state.picked.filter((x) => x !== w) : this.state.picked.concat([w]);
+          if (next.length > 2) next = next.slice(-2);
+          this.setState({ picked: next });
+        }
+      };
+    });
+    const tempoBase = 'font-family: inherit; font-size: 13px; font-weight: 800; border-radius: 999px; border: 0; padding: 10px 0; cursor: pointer;';
+    const tempos = ['slow', 'easy', 'quick', 'racing'].map((label, i) => {
+      const on = this.state.tempo === i + 1;
+      return {
+        label,
+        style: tempoBase + (on ? ' background: #3B2340; color: #FFFFFF;' : ' background: transparent; color: #7A6680;'),
+        pick: () => this.setState({ tempo: i + 1 })
+      };
+    });
+    return { words, tempos };
+  }
+}
+</script>
+</body>
+</html>

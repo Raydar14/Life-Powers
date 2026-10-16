@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap">
+<style>
+body{margin:0;font-family:Nunito,system-ui,sans-serif;color:#3B2340}
+a{color:#3B2340;text-decoration:none}a:hover{color:#B8206F}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFF4; display: flex; flex-direction: column; overflow: hidden; position: relative">
+
+  <svg viewBox="0 0 240 150" width="220" height="136" aria-hidden="true" style="position: absolute; top: -80px; right: -80px; width: 220px; height: 136px; opacity: 0.4"><g fill="#B1C6E1"><circle cx="72" cy="92" r="42"></circle><circle cx="120" cy="66" r="56"></circle><circle cx="172" cy="88" r="46"></circle><rect x="30" y="92" width="184" height="52" rx="26"></rect></g></svg>
+
+  <div style="flex: 1 1 auto; overflow: hidden; padding: 30px 20px 0 20px; display: flex; flex-direction: column; gap: 12px; position: relative">
+
+    <div style="display: flex; justify-content: space-between; align-items: flex-end">
+      <h1 style="margin: 0; font-size: 28px; font-weight: 900; line-height: 1.15">Settings</h1>
+      <a href="Welcome.dc.html" style="font-size: 12px; font-weight: 900; color: #B8206F; padding-bottom: 6px">Finish setup, 3 left</a>
+    </div>
+
+    <div style="background: #3B2340; color: #FFFFFF; border-radius: 28px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 14px 36px rgba(59,35,64,0.26)">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <div style="font-size: 16px; font-weight: 900">Assistant features</div>
+          <div style="font-size: 12px; font-weight: 600; color: #CBB2ED">Off means every assistant button disappears.</div>
+        </div>
+        <button type="button" onClick="{{toggleMaster}}" aria-label="Assistant features master switch" style="{{masterStyle}}"><span style="{{masterKnob}}"></span></button>
+      </div>
+      <sc-if value="{{masterOn}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.12)">
+          <div style="display: flex; justify-content: space-between; font-size: 13px"><span style="font-weight: 700">Interpret tarot cards</span><span style="color: #FFB3DD; font-weight: 800">on</span></div>
+          <div style="display: flex; justify-content: space-between; font-size: 13px"><span style="font-weight: 700">Ask about photos</span><span style="color: #FFB3DD; font-weight: 800">on</span></div>
+          <div style="display: flex; justify-content: space-between; font-size: 13px"><span style="font-weight: 700">Richer check-in ratings</span><span style="color: #CBB2ED; font-weight: 800">off</span></div>
+          <div style="display: flex; justify-content: space-between; font-size: 13px"><span style="font-weight: 700">Weekly narrative</span><span style="color: #CBB2ED; font-weight: 800">off</span></div>
+          <div style="font-size: 11px; color: #B1C6E1; font-weight: 600">Each call shows what it will send before it sends it. 4 calls so far, all listed under Privacy.</div>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="background: #FFFFFF; border-radius: 28px; padding: 6px 18px; display: flex; flex-direction: column; box-shadow: 0 12px 32px rgba(59,35,64,0.08)">
+      <a href="Profile.dc.html" style="display: flex; justify-content: space-between; align-items: center; padding: 13px 0"><span style="font-size: 15px; font-weight: 800">Connections</span><span style="font-size: 12px; font-weight: 700; color: #7A6680">Oura, Watch, CGM, scale, cuff</span></a>
+      <a href="Profile.dc.html" style="display: flex; justify-content: space-between; align-items: center; padding: 13px 0"><span style="font-size: 15px; font-weight: 800">Profile and hormones</span><span style="font-size: 12px; font-weight: 700; color: #7A6680">natural cycle</span></a>
+      <a href="Sky.dc.html" style="display: flex; justify-content: space-between; align-items: center; padding: 13px 0"><span style="font-size: 15px; font-weight: 800">Location and world</span><span style="font-size: 12px; font-weight: 700; color: #7A6680">approximate, transits on</span></a>
+      <a href="Journal.dc.html" style="display: flex; justify-content: space-between; align-items: center; padding: 13px 0"><span style="font-size: 15px; font-weight: 800">Journal and photos</span><span style="font-size: 12px; font-weight: 700; color: #7A6680">audio deleted</span></a>
+      <a href="Feel.dc.html" style="display: flex; justify-content: space-between; align-items: center; padding: 13px 0"><span style="font-size: 15px; font-weight: 800">Feelings, your words</span><span style="font-size: 12px; font-weight: 700; color: #7A6680">19 words, 3 yours</span></a>
+      <a href="Goals.dc.html" style="display: flex; justify-content: space-between; align-items: center; padding: 13px 0"><span style="font-size: 15px; font-weight: 800">Goals and reminders</span><span style="font-size: 12px; font-weight: 700; color: #7A6680">quiet 10 pm to 7 am</span></a>
+      <a href="Main.dc.html" style="display: flex; justify-content: space-between; align-items: center; padding: 13px 0"><span style="font-size: 15px; font-weight: 800">Forecast</span><span style="font-size: 12px; font-weight: 700; color: #7A6680">8 panels on Today</span></a>
+      <a href="Sky.dc.html" style="display: flex; justify-content: space-between; align-items: center; padding: 13px 0"><span style="font-size: 15px; font-weight: 800">Notices</span><span style="font-size: 12px; font-weight: 700; color: #7A6680">sky on, ground off</span></a>
+      <a href="Main.dc.html" style="display: flex; justify-content: space-between; align-items: center; padding: 13px 0"><span style="font-size: 15px; font-weight: 800">Privacy and data</span><span style="font-size: 12px; font-weight: 700; color: #7A6680">export, backup, delete</span></a>
+      <a href="Main.dc.html" style="display: flex; justify-content: space-between; align-items: center; padding: 13px 0"><span style="font-size: 15px; font-weight: 800">Appearance</span><span style="font-size: 12px; font-weight: 700; color: #7A6680">text, motion, hand</span></a>
+    </div>
+
+  </div>
+
+  <nav style="margin: 10px 16px 18px 16px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; background: #FFFFFF; border-radius: 999px; padding: 6px; box-shadow: 0 12px 32px rgba(59,35,64,0.12)">
+    <a href="Main.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Today</a>
+    <a href="Journal.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Journal</a>
+    <a href="Goals.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Goals</a>
+    <a href="Sky.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Sky</a>
+    <a href="Insights.dc.html" style="text-align: center; font-size: 12px; font-weight: 700; color: #7A6680; padding: 12px 0">Patterns</a>
+  </nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { master: true };
+  }
+  renderVals() {
+    const on = this.state.master;
+    return {
+      masterOn: on,
+      toggleMaster: () => this.setState({ master: !on }),
+      masterStyle: 'position: relative; width: 56px; height: 32px; border-radius: 999px; border: 0; cursor: pointer; background: ' + (on ? '#E6389A' : 'rgba(255,255,255,0.2)') + ';',
+      masterKnob: 'position: absolute; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; left: ' + (on ? '28px' : '4px') + ';'
+    };
+  }
+}
+</script>
+</body>
+</html>
