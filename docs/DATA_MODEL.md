@@ -213,6 +213,10 @@ Canonical unit in brackets. Day assignment rule tells the rollup which local day
 | words.valence, words.optimism, words.anxiety_markers, words.self_focus | 0 to 1 | calendar | last |
 | words_voice_gap | z difference | calendar | last |
 | hormone.fsh_trend | mIU/mL | calendar | 28 day mean |
+| forecast.score | z composite | calendar | last (computed each morning) |
+| forecast.tier | 'best', 'good', 'not_great', 'likely_hard', 'unknown' | calendar | last |
+| forecast.inputs_used | count | calendar | last |
+| forecast.outcome_score | z composite of readiness, voice, symptoms, self report | calendar | last (computed next morning) |
 
 ## Event catalog
 
@@ -260,6 +264,10 @@ Canonical unit in brackets. Day assignment rule tells the rollup which local day
 - Baselines are recomputed from scratch for the window after any profile_change with a hormonal
   effect (contraception, HRT, gender affirming hormones, pregnancy status), and insights do not pool
   data across such a change.
+
+- forecast.tier is derived from forecast.score with the thresholds in DESIGN.md section 3.4, and is
+  'unknown' whenever forecast.inputs_used is below 3 or any input lacks a 30 day baseline. The
+  thresholds are settings, the colors are fixed.
 
 ## Baseline and z score
 

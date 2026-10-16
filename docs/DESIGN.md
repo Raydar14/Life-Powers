@@ -213,6 +213,27 @@ trend and cycle length history when a cycle has no hormone tests, and uses sympt
 supporting evidence. Produces a phase label per day plus a confidence. Other hormonal models replace
 this with the appropriate rhythm (pill pack week, injection week) or turn it off.
 
+**Day forecast.** Each morning, once the night's data has synced, the app combines the signals it
+already has into one expectation for the day: sleep duration and quality, HRV and resting HR against
+baseline, skin temperature deviation, overnight glucose, hormonal phase, yesterday's voice indices, and
+any logged illness or alcohol. The composite is a weighted mean of z scores, with weights learned from
+your own history once the correlation engine has enough data (which inputs actually predicted your
+good and bad days), and sensible defaults before that. The result is a tier, not a number, and the
+tier is a color:
+
+| Tier | Color | Meaning |
+|---|---|---|
+| Best | Hot pink, #E6389A | Everything points to one of your best days. Composite above +0.8 z. |
+| Good | Light pink, #FFB3DD | Just under your best. Composite between +0.2 and +0.8 z. |
+| Not great | Lavender, #CBB2ED | Below your usual. Composite between -0.8 and -0.2 z. |
+| Likely hard | Soft blue, #B1C6E1 | Several signals down together. Composite below -0.8 z. |
+| Not enough information | Pale cream, #FFFFF4 | Fewer than three inputs available, or no baseline yet. |
+
+The band between -0.2 and +0.2 reads as Good when the previous day was Good or Best and Not great
+otherwise, so the forecast does not flicker on an ordinary morning. Every forecast is scored against
+how the day actually went (readiness, voice, symptoms, self report) so the weights improve and the app
+can show you how often it was right.
+
 **Affect scorer.** Turns each voice check-in into daily affect metrics from two channels, the words
 and the sound. Section 5 describes it.
 
@@ -235,7 +256,9 @@ the result when enough days are in, and reports the effect in plain language wit
 
 Four screens plus the check-in.
 
-**Today.** Recovery (Oura readiness, HRV z score, resting HR), metabolic (overnight glucose mean,
+**Today.** The day forecast first: a large soft card in the tier color, one sentence on why, and a
+seven day strip of colored dots showing the week so far. Below it, recovery (Oura readiness, HRV z
+score, resting HR), metabolic (overnight glucose mean,
 time in range, largest spike yesterday), cardiovascular (latest BP, 7 day trend), body (weight 7 day
 average, trend arrow), behavior (screen time yesterday, last screen use before sleep, logged events),
 hormonal phase, and how you sounded this morning compared with your usual. Each tile shows its own
@@ -452,7 +475,37 @@ you learn your personal pattern and stop reading luteal phase changes as problem
 
 ---
 
-## 7. Privacy and security
+## 7. Visual language
+
+The app should feel soft, round, and pleasing to hold, closer to a well made object than a dashboard.
+
+**Palette.** Five colors, and they carry meaning rather than decoration.
+
+| Color | Hex | Role |
+|---|---|---|
+| Hot pink | #E6389A | Best forecast tier. Large numerals and headlines. Never small body text, since it does not reach 4.5 to 1 contrast on light grounds. |
+| Light pink | #FFB3DD | Good forecast tier. Secondary buttons, selected states, soft highlights. |
+| Lavender | #CBB2ED | Not great forecast tier. Hormonal phase chip, sleep stage fills. |
+| Soft blue | #B1C6E1 | Likely hard forecast tier. Phone use blocks, cool accents. |
+| Pale cream | #FFFFF4 | Not enough information tier, and the ground every screen sits on. |
+
+Two derived tones keep text readable: a deep plum ink, #3B2340, for all text, and a deep pink,
+#B8206F, for filled primary buttons that carry white text. Both are darker versions of the palette,
+not new colors.
+
+**Shape and texture.** Corner radius 28 px on cards and 999 px on buttons, chips, and the floating
+bottom bar. Soft layered shadows in plum at low opacity so cards sit slightly above the ground. No
+hard rules or dividers; spacing and tint do the separating. Charts use rounded line caps and filled
+areas rather than thin wires.
+
+**Type.** One rounded sans serif family (Nunito) at weights from 500 to 900. Large numbers are heavy
+and friendly. Nothing is set in all caps except tiny labels.
+
+**No icons.** Labels are words. Status is color and shape.
+
+---
+
+## 8. Privacy and security
 
 - All data encrypted at rest on device with a key held in the Android Keystore.
 - No analytics, no crash reporting that includes health data, no network calls except to the vendor
@@ -469,7 +522,7 @@ you learn your personal pattern and stop reading luteal phase changes as problem
 
 ---
 
-## 8. Recommended stack
+## 9. Recommended stack
 
 | Layer | Choice | Why |
 |---|---|---|
@@ -496,7 +549,7 @@ is good enough for a personal app.
 
 ---
 
-## 9. Roadmap
+## 10. Roadmap
 
 There is no preparation phase. You install the app, connect your accounts, fill in the profile, and
 record your first check-in. Everything else accumulates on its own.
@@ -507,7 +560,8 @@ record your first check-in. Everything else accumulates on its own.
   supplies the recent history it holds for the watch, CGM, scale, and cuff, and more when the app is
   granted the history read permission. The profile is set. The timeline is already populated. First
   voice check-in recorded.
-- Day 7: Baselines exist for every metric with daily data. The Today view shows z scores. Screen time
+- Day 7: Baselines exist for every metric with daily data. The Today view shows z scores and the
+  first day forecast in color. Screen time
   has a week of history. The voice baseline is half built.
 - Day 14: Voice baseline complete, voice signals appear on the Today view. First preliminary
   insights appear for behaviors you have logged at least a handful of times.
@@ -518,7 +572,8 @@ record your first check-in. Everything else accumulates on its own.
 Android app, encrypted store, profile and hormonal model selector, Health Connect adapter for every
 type it carries, Oura API adapter for readiness contributors and tags, UsageStats adapter for screen
 time, quick log for behaviors and symptoms, voice check-in with on device transcription and acoustic
-features, Today and Timeline screens, daily rollups and baselines, the words versus voice gap card.
+features, Today and Timeline screens, daily rollups and baselines, the day forecast with its five tier colors,
+the words versus voice gap card.
 
 **Phase 2, four weeks: hormonal context and insights.**
 Inito PDF importer and manual hormone entry, full phase labeler across all hormonal models,
@@ -536,7 +591,7 @@ opt in).
 
 ---
 
-## 10. Open questions
+## 11. Open questions
 
 These change the integration work, not the architecture. Answer them in any order.
 
@@ -555,6 +610,6 @@ These change the integration work, not the architecture. Answer them in any orde
    iPhone as well, screen time and some device syncs split across two phones and the design needs a
    second ingestion path.
 5. **Who uses it.** This is designed for one person. If the intent is a tool for your practice or your
-   clients, section 7 applies and the roadmap gains a consent and multi user phase before Phase 1.
+   clients, section 8 applies and the roadmap gains a consent and multi user phase before Phase 1.
 6. **Cloud transcript analysis.** Do you want the opt in cloud option built at all, or should the
    words channel stay fully on device? On device is less nuanced but needs no trust decision.
