@@ -65,6 +65,8 @@ object Metrics {
     const val FEEL_ENERGY = "feel.energy"
     const val FEEL_EASE = "feel.ease"
     const val FEEL_TEMPO = "feel.tempo"
+    const val FEEL_TINT_HUE = "feel.tint_hue"
+    const val FEEL_TINT_LIGHT = "feel.tint_light"
     const val FORECAST_SCORE = "forecast.score"
     const val WEATHER_PRESSURE_CHANGE_24H = "weather.pressure_change_24h"
     const val WEATHER_DAYLIGHT_MIN = "weather.daylight_min"
@@ -119,6 +121,8 @@ object Metrics {
         MetricSpec(FEEL_ENERGY, "-1..1", DayRule.CALENDAR, listOf(Agg.MEAN), true),
         MetricSpec(FEEL_EASE, "-1..1", DayRule.CALENDAR, listOf(Agg.MEAN), true),
         MetricSpec(FEEL_TEMPO, "1..4", DayRule.CALENDAR, listOf(Agg.MEAN)),
+        MetricSpec(FEEL_TINT_HUE, "deg", DayRule.CALENDAR, listOf(Agg.LAST)),
+        MetricSpec(FEEL_TINT_LIGHT, "0..1", DayRule.CALENDAR, listOf(Agg.LAST)),
         MetricSpec(FORECAST_SCORE, "z", DayRule.CALENDAR, listOf(Agg.LAST), true),
         MetricSpec(WEATHER_PRESSURE_CHANGE_24H, "hPa", DayRule.CALENDAR, listOf(Agg.LAST)),
         MetricSpec(WEATHER_DAYLIGHT_MIN, "min", DayRule.CALENDAR, listOf(Agg.LAST), true),
