@@ -201,6 +201,40 @@ stored. Keeping encrypted audio is an option. Cloud analysis, if opted in, recei
 
 ---
 
+## Journal, tarot, and spoken symptoms (built in)
+
+**Captures.** Journal entries as text or on device transcribed voice notes, tarot pulls (deck, spread,
+position, card, orientation, note), and symptoms spoken in a sentence and parsed to the symptom
+catalog with a severity from intensity words.
+
+**Path.** Entered in the app. Nothing imported, nothing sent.
+
+**App uses.** Entries and pulls are moments on the timeline and attach to a day. Symptoms become
+behavior_event rows after a one tap confirm. Journal text can optionally feed the words channel.
+
+---
+
+## Earth and sky (external feeds and on device astronomy)
+
+| Layer | Source | Access | Location handling |
+|---|---|---|---|
+| Weather, pressure, daylight, UV | Open-Meteo forecast and historical | Free HTTPS, no key | Coordinate rounded to 0.1 degree |
+| Air quality | Open-Meteo air quality | Free HTTPS, no key | Coordinate rounded to 0.1 degree |
+| Moon, planets, eclipses, rise and set | Astronomy Engine library, on device | Bundled | Never leaves the phone |
+| Meteor showers | International Meteor Organization calendar, bundled yearly | Bundled | Not needed |
+| Space weather, aurora | NOAA SWPC planetary K index and aurora forecast | Free HTTPS | Latitude only, on device |
+| Earthquakes | USGS Earthquake Hazards Program GeoJSON feeds | Free HTTPS | Global feed, distance computed on device |
+| Volcanoes | Smithsonian Global Volcanism Program weekly report, USGS Volcano Hazards alerts | Free HTTPS | Global feed, Ring of Fire list bundled, matched on device |
+
+**App uses.** Weather, air, moon illumination, and K index as daily metrics. Ground and sky events as
+timeline moments and optional evening notices. Historical weather backfilled for every day already in
+the timeline when a location is first set.
+
+**Missing.** Pollen coverage varies by region. Volcano reports are weekly, not real time. With no
+location set, only moon phase, global eclipse dates, and meteor shower dates are available.
+
+---
+
 ## Source priority
 
 When two sources supply the same metric, the canonical copy comes from the first available source in
@@ -219,4 +253,7 @@ this list. The other copy stays in raw storage.
 | Screen time | UsageStatsManager |
 | Voice and words affect metrics | Voice check-in |
 | Profile, contraception, medications | Profile, manual |
-| Symptoms | Manual, voice check-in confirmation |
+| Symptoms | Spoken symptom parse with confirm, manual, voice check-in confirmation |
+| Weather, air, pressure | Open-Meteo |
+| Moon, planets, eclipses | On device astronomy |
+| Earthquakes, volcanoes | USGS, Smithsonian GVP |

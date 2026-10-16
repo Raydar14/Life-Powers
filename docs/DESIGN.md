@@ -13,7 +13,7 @@ Companion documents:
 
 ## 1. What the app is for
 
-You have eight streams of data about your body and your habits, each locked in its own vendor app or
+You have ten streams of data about your body and your habits, each locked in its own vendor app or
 not captured at all:
 
 | Stream | Device | What it tells you |
@@ -26,6 +26,8 @@ not captured at all:
 | Systolic, diastolic, pulse | Smart BP monitor | Cardiovascular outcome |
 | Phone usage by app and hour | Android usage stats | Behavior, especially late night screen time |
 | How you feel, in your words and in your voice | Daily voice check-in (built into the app) | Mood, energy, and tension, including what you do not notice yourself |
+| What you wrote, what you drew, what hurt | Journal, tarot log, spoken symptoms (built in) | Reflection, ritual, and the symptoms you would never tap into a form |
+| Weather, air, moon, ground, and sky | Open weather and geoscience feeds plus on device astronomy, keyed to your location if you allow it | The world around you as an input, and the beautiful things worth stepping outside for |
 
 None of these apps can see the others. The question you want answered is not "what was my sleep
 score" but "what did I do on the days my sleep score was good, and does that hold up over months."
@@ -254,7 +256,7 @@ the result when enough days are in, and reports the effect in plain language wit
 
 ### 3.5 UI
 
-Four screens plus the check-in.
+Six screens plus the check-in.
 
 **Today.** The day forecast first: a large soft card in the tier color, one sentence on why, and a
 seven day strip of colored dots showing the week so far. Below it, recovery (Oura readiness, HRV z
@@ -277,6 +279,12 @@ it.
 **Insights.** A feed of findings ranked by effect size and confidence, each showing the paired
 scatter, the sample size, the phase breakdown, and a one line interpretation. Dismissable and
 pinnable.
+
+**Journal.** Entries, voice notes, tarot pulls, and the spoken symptom button. The daily check-in lives
+here too.
+
+**Sky and earth.** Today's weather and pressure trend, the moon, what is visible tonight, upcoming
+eclipses and showers, and recent ground activity with its distance from you.
 
 **Experiments.** Set up, run, and review self experiments.
 
@@ -433,6 +441,96 @@ events, so the check-in doubles as the fastest way to log.
 
 ---
 
+## 5A. Journal, tarot, and spoken symptoms
+
+### Journal
+
+A plain place to write or talk. An entry is text, a voice note transcribed on the phone, or both. Entries
+attach to a day, can carry tags, and can hold a tarot pull. The same language markers the check-in uses
+(emotion words, self focus, future orientation) run over journal text when you want them to, so a long
+entry on a hard day enriches the words channel rather than sitting apart from it. Entries are never
+scored for affect unless you turn that on, and they are never sent anywhere.
+
+### Tarot log
+
+A record of cards pulled: deck, spread name, position in the spread, the card, upright or reversed,
+and a note on what it meant to you. Pulls appear on the timeline as a moment and in the journal entry
+they belong to. Over time the app can show, descriptively, which cards have turned up on which kinds
+of days and in which cycle phases, framed as a mirror for reflection rather than a prediction. A
+pull is a ritual and a prompt, and the app treats it that way: the card's own meaning text is yours to
+write or import, and the app does not supply interpretations.
+
+### Symptoms by speaking
+
+A long press on the Journal tab, or a sentence inside any check-in, logs symptoms without a form. "My
+head is pounding and I am so bloated" becomes headache at severity 4 and bloating at severity 3, shown
+as two chips for a one tap confirm. Severity comes from intensity words (a little, some, bad, awful,
+pounding, the worst) mapped to 1 to 5, and defaults to 3 when none is present. The symptom catalog in
+DATA_MODEL.md is the vocabulary; unknown words are offered as a new symptom kind rather than dropped.
+
+---
+
+## 5B. Earth and sky
+
+### What it adds
+
+The world outside the body as context and as input. Weather, air quality, moon phase, geomagnetic
+activity, nearby seismic and volcanic events, and the sky events worth stepping outside for.
+
+| Layer | Data | Why it is in a health app |
+|---|---|---|
+| Weather | Temperature, humidity, barometric pressure and its 24 hour change, wind, cloud cover, daylight hours, UV | Pressure swings and heat are well known migraine and sleep inputs. Daylight hours move mood and sleep timing. |
+| Air quality | PM2.5, ozone, pollen where available | Breathing, sleep, and headache input. |
+| Moon | Phase, illumination, moonrise and moonset, supermoon and micromoon | A rhythm many people track. Research on moon and sleep is mixed and small, so the app lets your own data speak. |
+| Space weather | Planetary K index, aurora probability at your latitude | An aurora alert is one of the best reasons to go outside at night. |
+| Ground | Earthquakes with magnitude and distance from you, volcanic activity reports, both filtered to the Ring of Fire and to anything within your chosen radius | Awareness, and a context marker for sleep or anxiety on a night the ground moved. |
+| Sky | Solar and lunar eclipses visible from your location with local times, meteor shower peaks with the moon's interference noted, planets visible to the naked eye and when, close pairings of planets and the moon, International Space Station passes | Cool things happening. The app tells you the evening before. |
+
+### Location
+
+Earth and sky need a place. The app offers four choices and works with any of them:
+
+1. Precise device location, refreshed daily.
+2. Approximate device location, rounded to about 10 km.
+3. A city you type in Settings, never read from the device.
+4. No location. Moon phase, global eclipses, and meteor shower dates still work. Weather, ground
+   distance, and local visibility do not.
+
+Whatever the choice, the coordinate sent to a weather or air quality service is rounded to one decimal
+place, about 10 km, so the service learns your town and not your street. Earthquake and volcano feeds
+are fetched globally and filtered on the phone, so those services learn nothing. Moon, eclipse, planet,
+and meteor calculations run on the phone from bundled astronomy routines and tables, with no network
+call at all.
+
+### Sources
+
+| Layer | Source | Notes |
+|---|---|---|
+| Weather and air | Open-Meteo forecast, historical, and air quality endpoints | Free, no key, no account. Hourly history back years, which lets the app backfill pressure and daylight for every day already in your timeline. |
+| Moon, planets, eclipses | Astronomy Engine, on device | Open source, available for Kotlin. Computes positions, rise and set, phases, and eclipse circumstances for your coordinate. |
+| Meteor showers | Bundled International Meteor Organization calendar | Updated yearly with the app. Peak dates, rates, and radiant. |
+| Space weather | NOAA Space Weather Prediction Center K index and aurora forecast | Free feed, polled a few times a day. |
+| Earthquakes | USGS Earthquake Hazards Program GeoJSON feeds | Free, near real time, global. The app keeps magnitude 4.5 and above worldwide and anything 2.5 and above within your radius. |
+| Volcanoes | Smithsonian Global Volcanism Program weekly report and USGS Volcano Hazards alerts | Weekly worldwide activity. The Ring of Fire is a bundled list of volcanoes to match against. |
+
+### How it joins the analysis
+
+Pressure change, daylight hours, temperature, air quality, moon illumination, and K index enter the
+daily rollup as metrics and the correlation engine treats them like any other input. The app can then
+tell you whether your migraines follow pressure drops, whether short winter days flatten your voice,
+and whether full moons cost you sleep, each against your own baseline and with the usual sample size
+rules. Ground events and sky events are moments on the timeline, not metrics.
+
+### Telling you about cool things
+
+A quiet evening notice when something is worth seeing: "Orionids peak tonight, best after 1 am, the
+moon sets at 11 so skies will be dark." "Partial lunar eclipse Tuesday, starts 9:14 pm from where you
+are." "Venus and Jupiter a finger apart at dusk this week." "Aurora possible tonight at your latitude."
+Each category can be turned on or off. Ground events notify only above a magnitude and within a
+distance you set, and never with alarm language.
+
+---
+
 ## 6. Insights the data can actually support
 
 Grouped by outcome, with the inputs the app has for each. These are the concrete analyses the
@@ -459,9 +557,14 @@ are sparse, so this analysis uses weekly aggregates and needs months of data.
 
 **Mood, energy, and tension (voice check-in).**
 Inputs: sleep metrics, HRV, resting HR, steps, workouts, screen time, alcohol, caffeine, glucose
-variability, hormonal phase, symptoms, medication changes.
+variability, hormonal phase, symptoms, medication changes, daylight hours, pressure change, air quality.
 Outcomes: voice.energy_index, voice.flatness_index, voice.tension_index, words.valence,
 words.optimism, and the words versus voice gap.
+
+**Headaches and other symptoms.**
+Inputs: barometric pressure 24 hour change, temperature, humidity, air quality, sleep, hormonal phase,
+alcohol, caffeine, screen time, glucose variability.
+Outcomes: headache and migraine days and severity, and every other symptom kind as its own outcome.
 
 **Body composition.**
 Inputs: weekly averages of everything above.
@@ -512,6 +615,9 @@ and friendly. Nothing is set in all caps except tiny labels.
   APIs you connect and, if opted in, the transcript analysis service.
 - OAuth tokens stored in the Keystore backed EncryptedSharedPreferences.
 - Audio processed on device and deleted by default after feature extraction.
+- Location is optional, can be typed instead of read from the device, and is rounded to about 10 km
+  before any weather or air quality request. Astronomy runs on the phone. Earthquake and volcano feeds
+  are global and filtered locally.
 - Export at any time to CSV or JSON. Delete everything with one action.
 - Backups are an encrypted archive you save to your own Drive or a cable. The app never holds a
   cloud copy.
@@ -575,10 +681,11 @@ time, quick log for behaviors and symptoms, voice check-in with on device transc
 features, Today and Timeline screens, daily rollups and baselines, the day forecast with its five tier colors,
 the words versus voice gap card.
 
-**Phase 2, four weeks: hormonal context and insights.**
+**Phase 2, four weeks: hormonal context, insights, journal, and sky.**
 Inito PDF importer and manual hormone entry, full phase labeler across all hormonal models,
 correlation engine with lags and stratification, Insights feed, cycle or dosing interval overlay
-view.
+view. Journal with voice notes, tarot log, spoken symptoms. Location settings, weather and air
+backfill, moon and sky computations, earthquake and volcano feeds, evening sky notices.
 
 **Phase 3, four weeks: experiments and depth.**
 Experiment runner. Optional cloud transcript analysis with opt in. Optional speech emotion model.

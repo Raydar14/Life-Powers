@@ -157,6 +157,64 @@ CREATE TABLE voice_checkin (
 );
 CREATE INDEX idx_checkin_time ON voice_checkin (start_utc);
 
+-- Journal entries, text or transcribed voice, optionally linked to a check-in.
+CREATE TABLE journal_entry (
+    id              INTEGER PRIMARY KEY,
+    start_utc       INTEGER NOT NULL,
+    zone_offset_min INTEGER NOT NULL,
+    body            TEXT,                       -- text, or the transcript of a voice note
+    audio_path      TEXT,                       -- null once deleted (the default)
+    tags            TEXT,                       -- JSON array of strings
+    checkin_id      INTEGER REFERENCES voice_checkin(id),
+    words_json      TEXT,                       -- language markers, only when the user enables scoring for journals
+    quality_ok      INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX idx_journal_time ON journal_entry (start_utc);
+
+-- Tarot pulls. One row per card placed.
+CREATE TABLE tarot_pull (
+    id              INTEGER PRIMARY KEY,
+    pulled_utc      INTEGER NOT NULL,
+    zone_offset_min INTEGER NOT NULL,
+    deck            TEXT,
+    spread          TEXT,                       -- 'single', 'three_card', 'celtic_cross', or user named
+    position        TEXT,                       -- 'past', 'present', 'future', 'situation', or spread specific
+    card            TEXT NOT NULL,              -- 'The Star', 'Seven of Cups', ...
+    reversed        INTEGER NOT NULL DEFAULT 0,
+    note            TEXT,                       -- the user's own meaning, never supplied by the app
+    journal_id      INTEGER REFERENCES journal_entry(id)
+);
+CREATE INDEX idx_tarot_time ON tarot_pull (pulled_utc);
+
+-- Location choice. One row.
+CREATE TABLE location_setting (
+    id              INTEGER PRIMARY KEY CHECK (id = 1),
+    mode            TEXT NOT NULL,              -- 'precise', 'approximate', 'manual', 'none'
+    lat             REAL,                       -- stored at full precision only for 'precise'
+    lon             REAL,
+    place_name      TEXT,                       -- for 'manual'
+    ground_radius_km INTEGER NOT NULL DEFAULT 500,
+    ground_min_mag  REAL NOT NULL DEFAULT 4.5,
+    notify_sky      INTEGER NOT NULL DEFAULT 1,
+    notify_ground   INTEGER NOT NULL DEFAULT 0,
+    notify_aurora   INTEGER NOT NULL DEFAULT 1,
+    updated_at      INTEGER NOT NULL
+);
+
+-- Sky and ground events, computed or fetched, shown as timeline moments and notices.
+CREATE TABLE world_event (
+    id              INTEGER PRIMARY KEY,
+    kind            TEXT NOT NULL,              -- 'solar_eclipse', 'lunar_eclipse', 'meteor_peak', 'planet_visible', 'conjunction', 'iss_pass', 'aurora_chance', 'full_moon', 'new_moon', 'earthquake', 'volcano'
+    start_utc       INTEGER NOT NULL,
+    end_utc         INTEGER,
+    title           TEXT NOT NULL,
+    detail_json     TEXT,                       -- magnitude, distance_km, visibility, altitude, moon interference, source id
+    visible_locally INTEGER,                    -- null when no location
+    source          TEXT NOT NULL,              -- 'astronomy_engine', 'imo_calendar', 'noaa_swpc', 'usgs', 'gvp'
+    notified_at     INTEGER
+);
+CREATE INDEX idx_world_time ON world_event (kind, start_utc);
+
 -- Sync bookkeeping.
 CREATE TABLE sync_cursor (
     source          TEXT NOT NULL,
@@ -217,6 +275,20 @@ Canonical unit in brackets. Day assignment rule tells the rollup which local day
 | forecast.tier | 'best', 'good', 'not_great', 'likely_hard', 'unknown' | calendar | last |
 | forecast.inputs_used | count | calendar | last |
 | forecast.outcome_score | z composite of readiness, voice, symptoms, self report | calendar | last (computed next morning) |
+| weather.temp_max, weather.temp_min | degrees C | calendar | last |
+| weather.humidity_mean | percent | calendar | mean |
+| weather.pressure_mean | hPa | calendar | mean |
+| weather.pressure_change_24h | hPa | calendar | last (largest absolute change in the day) |
+| weather.cloud_mean | percent | calendar | mean |
+| weather.daylight_min | min | calendar | last |
+| weather.uv_max | index | calendar | max |
+| air.pm25_mean, air.ozone_max | ug/m3, ug/m3 | calendar | mean, max |
+| air.pollen_max | vendor index | calendar | max |
+| moon.illumination | 0 to 1 | calendar | last (at local midnight) |
+| moon.phase_day | 0 to 29.5 | calendar | last |
+| space.kp_max | 0 to 9 | calendar | max |
+| ground.quakes_in_radius | count | calendar | sum |
+| ground.nearest_quake_km | km | calendar | min |
 
 ## Event catalog
 
@@ -239,6 +311,9 @@ Canonical unit in brackets. Day assignment rule tells the rollup which local day
 | hormone_dose | dose, note: type and route | manual, profile |
 | contraception_change | none, note: from and to | profile_change |
 | pack_day | day number 1 to 28 | derived from profile for pack rhythm model |
+| journal | none, note: entry id | journal_entry |
+| tarot_pull | none, note: card and spread | tarot_pull |
+| spoken_symptom | severity 1 to 5, note: raw phrase | voice parse, becomes symptom.* on confirm |
 
 ## Rollup rules worth stating
 
@@ -268,6 +343,11 @@ Canonical unit in brackets. Day assignment rule tells the rollup which local day
 - forecast.tier is derived from forecast.score with the thresholds in DESIGN.md section 3.4, and is
   'unknown' whenever forecast.inputs_used is below 3 or any input lacks a 30 day baseline. The
   thresholds are settings, the colors are fixed.
+
+- Spoken symptom severity maps intensity words to 1 to 5: a little or slight 1, some or mild 2, no
+  qualifier 3, bad or strong or really 4, awful or worst or unbearable or pounding 5.
+- When location_setting.mode is 'none', weather and air metrics are absent, moon metrics are still
+  computed, and world_event rows carry visible_locally null.
 
 ## Baseline and z score
 
