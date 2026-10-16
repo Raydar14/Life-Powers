@@ -778,7 +778,8 @@ not forecast anything stay white.
 **Shape and texture.** Corner radius 28 px on cards and 999 px on buttons, chips, and the floating
 bottom bar. Soft layered shadows in plum at low opacity so cards sit slightly above the ground. No
 hard rules or dividers; spacing and tint do the separating. Charts use rounded line caps and filled
-areas rather than thin wires.
+areas rather than thin wires. Behind the content of every screen sit one to three soft clouds in the
+palette colors at low opacity, drifting off the edges, so the ground never reads as flat white.
 
 **Type.** One rounded sans serif family (Nunito) at weights from 500 to 900. Large numbers are heavy
 and friendly. Nothing is set in all caps except tiny labels.
