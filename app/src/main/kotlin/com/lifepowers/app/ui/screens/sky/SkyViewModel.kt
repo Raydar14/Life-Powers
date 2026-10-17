@@ -78,7 +78,12 @@ class SkyViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SkyUiState(today = today))
 
     init {
-        refresh()
+        // Opening the tab refreshes at most every 20 minutes; the Refresh link always refreshes.
+        val now = System.currentTimeMillis()
+        if (now - lastAutoRefreshMs >= AUTO_REFRESH_MS) {
+            lastAutoRefreshMs = now
+            refresh()
+        }
     }
 
     /** Network refresh of weather, air, quakes, volcano reports and the K index. Failures are quiet. */
@@ -98,5 +103,10 @@ class SkyViewModel @Inject constructor(
                 _refreshing.value = false
             }
         }
+    }
+
+    private companion object {
+        const val AUTO_REFRESH_MS = 20 * 60_000L
+        @Volatile var lastAutoRefreshMs = 0L
     }
 }

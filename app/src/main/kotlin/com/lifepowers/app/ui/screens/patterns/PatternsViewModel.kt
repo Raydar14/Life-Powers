@@ -6,6 +6,7 @@ import com.lifepowers.app.domain.PatternRepository
 import com.lifepowers.core.Insight
 import com.lifepowers.core.Patterns
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -51,6 +52,10 @@ class PatternsViewModel @Inject constructor(private val patternRepository: Patte
         viewModelScope.launch {
             try {
                 patternRepository.recompute()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // A failed look (disk or database) keeps the last findings on screen.
             } finally {
                 looking.value = false
             }

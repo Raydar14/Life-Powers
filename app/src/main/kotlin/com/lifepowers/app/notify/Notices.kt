@@ -47,7 +47,9 @@ object Notices {
 
     fun openIntent(context: Context, route: String?, requestCode: Int): PendingIntent {
         val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            // SINGLE_TOP so a running MainActivity gets onNewIntent instead of being finished and
+            // re-created by CLEAR_TOP, which would drop the back stack and any unsaved screen.
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             route?.let { putExtra(EXTRA_ROUTE, it) }
         }
         return PendingIntent.getActivity(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)

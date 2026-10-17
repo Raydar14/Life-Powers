@@ -15,8 +15,10 @@ import com.lifepowers.app.voice.SpeechToText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -92,6 +94,7 @@ class JournalEntryViewModel @Inject constructor(
 
     private var started = false
     private var hydrated = false
+    private var deleting = false
     private var observeJob: Job? = null
     private var listenJob: Job? = null
 
@@ -238,9 +241,11 @@ class JournalEntryViewModel @Inject constructor(
             _state.update { it.copy(closed = true) }
             return
         }
+        deleting = true
         viewModelScope.launch {
             observeJob?.cancel()
             val ok = runCatching { journalRepository.deleteEntry(id) }.isSuccess
+            if (!ok) deleting = false
             _state.update { if (ok) it.copy(closed = true) else it.copy(notice = "That did not delete just now. Try again in a moment.") }
         }
     }
@@ -381,6 +386,15 @@ class JournalEntryViewModel @Inject constructor(
 
     override fun onCleared() {
         stt.stopListening()
+        // Leaving by a bottom bar tab or a notice pops this screen without Back, so unsaved words
+        // are kept here. The repository is a singleton, so the save may outlive this view model.
+        val s = _state.value
+        if (!s.closed && !s.saving && !deleting && s.dirty && (s.form.id != 0L || s.form.hasWords())) {
+            val entry = s.form.toEntry()
+            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                runCatching { journalRepository.saveEntry(entry) }
+            }
+        }
         super.onCleared()
     }
 }

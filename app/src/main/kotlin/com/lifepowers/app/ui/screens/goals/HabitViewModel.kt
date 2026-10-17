@@ -9,6 +9,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -26,15 +27,12 @@ data class HabitUiState(
 @HiltViewModel
 class HabitViewModel @Inject constructor(private val goalRepository: GoalRepository) : ViewModel() {
 
-    private val today: LocalDate = LocalDate.now()
     private val goalId = MutableStateFlow<Long?>(null)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val state: StateFlow<HabitUiState> = goalId
-        .filterNotNull()
-        .flatMapLatest { id -> goalRepository.view(id, today) }
-        .map { HabitUiState(today = today, view = it, loaded = true) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HabitUiState(today = today))
+    val state: StateFlow<HabitUiState> = combine(goalId.filterNotNull(), localDays()) { id, today -> id to today }
+        .flatMapLatest { (id, today) -> goalRepository.view(id, today).map { HabitUiState(today = today, view = it, loaded = true) } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HabitUiState(today = LocalDate.now()))
 
     fun setGoal(id: Long) {
         goalId.value = id
@@ -42,7 +40,7 @@ class HabitViewModel @Inject constructor(private val goalRepository: GoalReposit
 
     fun check() {
         val id = goalId.value ?: return
-        viewModelScope.launch { goalRepository.check(id, today) }
+        viewModelScope.launch { goalRepository.check(id, LocalDate.now()) }
     }
 
     fun uncheck(checkId: Long) {
