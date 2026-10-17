@@ -27,6 +27,10 @@ class MetricRepositoryImpl @Inject constructor(
         this.samples.upsertAll(samples.map { it.toEntity() })
     }
 
+    override suspend fun deleteSamples(source: String, startUtcMs: Long) {
+        samples.deleteAt(source, startUtcMs)
+    }
+
     /**
      * Rebuilds daily_metric for [from]..[to]. Samples are read from a UTC window one day wider on
      * each side so night ending metrics and zone offsets cannot drop a sample at the edge.

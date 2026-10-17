@@ -9,12 +9,17 @@ import com.lifepowers.app.domain.EventKinds
 import com.lifepowers.app.domain.EventRepository
 import com.lifepowers.app.domain.ForecastRepository
 import com.lifepowers.app.domain.ForecastSnapshot
+import com.lifepowers.app.domain.GoalRepository
+import com.lifepowers.app.domain.GoalView
 import com.lifepowers.app.domain.MetricRepository
 import com.lifepowers.app.domain.PhaseForDay
 import com.lifepowers.app.domain.ProfileRepository
+import com.lifepowers.app.domain.SkyToday
 import com.lifepowers.app.domain.UserProfileState
+import com.lifepowers.app.domain.WorldRepository
 import com.lifepowers.app.ui.components.Fmt
 import com.lifepowers.core.Agg
+import com.lifepowers.core.Cadence
 import com.lifepowers.core.Component
 import com.lifepowers.core.Metrics
 import com.lifepowers.core.Tier
@@ -22,9 +27,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
 import javax.inject.Inject
@@ -47,6 +54,11 @@ data class TodayUiState(
     val phase: PhaseForDay? = null,
     val cravingCount: Int = 0,
     val latestCheckin: CheckinRecord? = null,
+    /** Today's sky and weather, null until the world repository answers. */
+    val sky: SkyToday? = null,
+    /** Habits checked today and habits in all, null until goals have loaded. */
+    val habitsDone: Int? = null,
+    val habitsTotal: Int? = null,
     val loaded: Boolean = false,
 ) {
     fun tier(component: Component): Tier = componentTiers[component] ?: Tier.UNKNOWN
@@ -117,6 +129,8 @@ class TodayViewModel @Inject constructor(
     metricRepository: MetricRepository,
     eventRepository: EventRepository,
     checkinRepository: CheckinRepository,
+    worldRepository: WorldRepository,
+    goalRepository: GoalRepository,
 ) : ViewModel() {
 
     private val today: LocalDate = LocalDate.now()
@@ -136,7 +150,19 @@ class TodayViewModel @Inject constructor(
         .between(Fmt.startOfDayMs(today.minusDays(30)), Fmt.endOfDayMs(today.plusDays(1)))
         .map { eventRepository.countOfKind(EventKinds.CRAVING) }
 
-    val state: StateFlow<TodayUiState> = combine(base, cravingCount, checkinRepository.recent(3)) { b, cravings, checkins ->
+    /** Emits null first so Today never waits on the astronomy. */
+    private val skyFlow: Flow<SkyToday?> = worldRepository.skyToday(today)
+        .map<SkyToday, SkyToday?> { it }
+        .onStart { emit(null) }
+        .catch { emit(null) }
+
+    private val goalsFlow: Flow<List<GoalView>?> = goalRepository.views(today)
+        .map<List<GoalView>, List<GoalView>?> { it }
+        .onStart { emit(null) }
+        .catch { emit(null) }
+
+    val state: StateFlow<TodayUiState> = combine(base, cravingCount, checkinRepository.recent(3), skyFlow, goalsFlow) { b, cravings, checkins, sky, goals ->
+        val habits = goals?.filter { it.goal.isHabit && !it.goal.archived }
         val latest = latestByKey(b.points)
         fun value(metric: String, agg: Agg): Double? = latest[metric to agg]?.value
         TodayUiState(
@@ -156,9 +182,16 @@ class TodayViewModel @Inject constructor(
             phase = b.phase,
             cravingCount = cravings,
             latestCheckin = checkins.maxByOrNull { it.startUtcMs },
+            sky = sky,
+            habitsDone = habits?.count { doneToday(it) },
+            habitsTotal = habits?.size,
             loaded = true,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TodayUiState())
+
+    /** Checked today, or a daily goal already met today (automatic checks count). */
+    private fun doneToday(view: GoalView): Boolean =
+        view.checksToday.isNotEmpty() || (view.goal.cadence == Cadence.DAILY && view.current.fraction >= 1.0)
 
     private fun latestByKey(points: List<DailyMetricPoint>): Map<Pair<String, Agg>, DailyMetricPoint> {
         val out = HashMap<Pair<String, Agg>, DailyMetricPoint>()

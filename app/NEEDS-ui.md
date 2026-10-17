@@ -3,12 +3,29 @@
 Things the UI (com.lifepowers.app.ui, MainActivity) needs from outside its own packages, and how it
 works around each until it exists. Written by the UI engineer; nothing here blocks a build.
 
-## Fonts
-- **Nunito through the Google Fonts provider needs a certificates resource.** `androidx.compose.ui.text.googlefonts`
-  requires `GoogleFont.Provider("com.google.android.gms.fonts", "com.google.android.gms", R.array.com_google_android_gms_fonts_certs)`.
-  The UI cannot add resources, so `ui/theme/Type.kt` uses `FontFamily.SansSerif` at weights 500 to 900.
-  When `res/values/font_certs.xml` exists, replace `LifePowersFontFamily` in `Type.kt` with a
-  `FontFamily(Font(GoogleFont("Nunito"), provider, FontWeight.Medium), ... FontWeight.Black)`.
+## Phase 2 bindings the UI injects
+- `SkyViewModel` injects `WorldRepository` and `ForecastRepository`; `TodayViewModel` now also injects
+  `WorldRepository` and `GoalRepository`; `SettingsViewModel` injects `WorldRepository`. Hilt needs a
+  binding for both interfaces (world and goals packages) or the app module will not compile.
+- `SkyViewModel` calls `worldRepository.refresh()` once when the Sky screen opens and ignores failures.
+  Settings calls `refresh()` after a location change.
+- Precise location requests both `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION` together (Android 12
+  and later ignore a fine only request). If only coarse is granted the UI saves `APPROXIMATE`. After
+  saving the mode it calls `refreshDeviceLocation()`; the repository is expected to fill `label` and
+  `point` for device modes. A city choice saves `LocationSetting(CITY, "Name, Region", point)`.
+- The Sky screen filters `groundEvents()` to kinds other than "aurora" and reads aurora from `SkyToday`.
+
+## Navigation from other packages
+- `LifePowersApp` calls these by exact signature: `GoalsScreen(onNavigate)`, `GoalEditScreen(goalId,
+  prefillName, onDone, onBack)`, `HabitScreen(goalId, onNavigate, onBack)`, `TimerScreen(goalId: Long?,
+  onDone)`, `GoalRoutes.GOAL_EDIT / GOAL / TIMER`, `PatternsScreen(onNavigate)`, `JournalEntryScreen(entryId,
+  onBack, onNavigate)`, `TarotScreen(onNavigate, onBack)`, `TarotPullScreen(pullId, entryId, onBack)`.
+- The `name` argument of the goal edit route is read as nav-compose decodes it; callers should
+  `Uri.encode` the name when building the route.
+- Notice taps: `MainActivity` reads `Notices.EXTRA_ROUTE` in `onCreate` and `onNewIntent`. Accepted values are
+  the top level route names (today, journal, goals, sky, patterns, settings, days, feel, checkin, profile,
+  tarot), "timer", and the concrete forms `goal/<id>`, `timer?goalId=<id>`, `journal/entry/<id>`. Anything
+  else is ignored.
 
 ## Voice (com.lifepowers.app.voice)
 - `CheckinViewModel` injects `CheckinSessionController` exactly as specified: `state`, `currentPrompt`,
@@ -35,9 +52,12 @@ works around each until it exists. Written by the UI engineer; nothing here bloc
 - `ProfileRepository.phaseFor(today)` is called once per Today view model; it does not re-run when the
   profile changes until the screen is recreated.
 
-## Later phases (placeholders in place)
-- Goals, Sky and Patterns are placeholder screens ("Coming in the next phase") at routes `goals`, `sky`,
-  `patterns`. Photo and tarot buttons in Journal show a one line "next phase" note.
+## Still open
 - The Days screen shows tier dots, daily metric points with z words, and events; the one night on one
   clock chart from the mockup needs the sample level series and comes with Timeline work.
 - The "sample data labeled as sample" for door two is a data layer concern; the UI only sets `playFirst`.
+- Settings rows for Forecast, Privacy and data, and Appearance are still shown as "next phase".
+- Personal sky lines like "your own full moons: sleep 22 minutes shorter" on the Sky panel wait for
+  pattern findings keyed to moon illumination; the panel shows only computed astronomy for now.
+- Temperatures are shown as Open-Meteo returns them (Celsius by default) with a degree sign; a unit
+  setting would belong under Appearance.

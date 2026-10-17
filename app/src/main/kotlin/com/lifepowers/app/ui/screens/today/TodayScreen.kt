@@ -5,11 +5,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -35,13 +38,15 @@ import com.lifepowers.app.ui.components.Clouds
 import com.lifepowers.app.ui.components.DashedCard
 import com.lifepowers.app.ui.components.Fmt
 import com.lifepowers.app.ui.components.HotButton
-import com.lifepowers.app.ui.components.Kicker
 import com.lifepowers.app.ui.components.PillButton
-import com.lifepowers.app.ui.components.SectionLabel
+import com.lifepowers.app.ui.components.MutedLine
 import com.lifepowers.app.ui.components.SoftCard
+import com.lifepowers.app.ui.components.TextLink
 import com.lifepowers.app.ui.components.TierDot
 import com.lifepowers.app.ui.components.softShadow
+import com.lifepowers.app.domain.LocationMode
 import com.lifepowers.app.ui.navigation.Routes
+import com.lifepowers.app.ui.screens.sky.SkyText
 import com.lifepowers.app.ui.theme.BodyText
 import com.lifepowers.app.ui.theme.DeepLavender
 import com.lifepowers.app.ui.theme.DeepPink
@@ -49,8 +54,9 @@ import com.lifepowers.app.ui.theme.Ink
 import com.lifepowers.app.ui.theme.Muted
 import com.lifepowers.app.ui.theme.PanelInkOnHot
 import com.lifepowers.app.ui.theme.Plum
+import com.lifepowers.core.Sky
 import com.lifepowers.app.ui.theme.White
-import com.lifepowers.app.ui.theme.color
+import com.lifepowers.app.ui.theme.hexColor
 import com.lifepowers.app.ui.theme.shadowColor
 import com.lifepowers.app.ui.theme.sublineColor
 import com.lifepowers.app.ui.theme.textColor
@@ -74,9 +80,12 @@ fun TodayScreen(onNavigate: (String) -> Unit, viewModel: TodayViewModel = hiltVi
             Header(state, onNavigate)
             DayCard(state, onNavigate)
             QuickRow(onNavigate)
-            SectionLabel(text = "Each panel wears its own forecast", modifier = Modifier.padding(start = 6.dp, top = 2.dp))
             ComponentGrid(state, onNavigate)
             MindCard(state, onNavigate)
+            MutedLine(
+                text = "Each panel wears its own forecast, so two panels can disagree.",
+                modifier = Modifier.padding(horizontal = 6.dp),
+            )
         }
     }
 }
@@ -85,11 +94,11 @@ fun TodayScreen(onNavigate: (String) -> Unit, viewModel: TodayViewModel = hiltVi
 private fun Header(state: TodayUiState, onNavigate: (String) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(text = Fmt.dateKicker(state.today), color = Muted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             Text(
                 text = "${Fmt.greeting()}, ${state.displayName ?: "there"}",
                 color = Ink, fontSize = 26.sp, lineHeight = 30.sp, fontWeight = FontWeight.Black,
             )
+            Text(text = Fmt.dateLine(state.today), color = Muted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             PillButton(
@@ -123,7 +132,7 @@ private fun DayCard(state: TodayUiState, onNavigate: (String) -> Unit) {
         ) { DayCardBody(state, onNavigate) }
     } else {
         SoftCard(
-            modifier = Modifier.fillMaxWidth(), color = tier.color(),
+            modifier = Modifier.fillMaxWidth(), color = tier.hexColor(),
             shadowColor = tier.shadowColor(), shadowAlpha = 0.16f, elevation = 14.dp,
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp), gap = 6.dp,
         ) { DayCardBody(state, onNavigate) }
@@ -133,18 +142,22 @@ private fun DayCard(state: TodayUiState, onNavigate: (String) -> Unit) {
 @Composable
 private fun DayCardBody(state: TodayUiState, onNavigate: (String) -> Unit) {
     val tier = state.dayTier
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Kicker("Today's forecast", color = if (tier == Tier.BEST) PanelInkOnHot else Plum)
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+        Text(
+            text = state.dayTitle,
+            color = tier.textColor(),
+            fontSize = 28.sp, lineHeight = 31.sp, fontWeight = FontWeight.Black,
+            modifier = Modifier.weight(1f),
+        )
         Row(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.clip(RoundedCornerShape(999.dp)).clickable { onNavigate(Routes.DAYS) }.padding(4.dp),
+            modifier = Modifier.padding(top = 6.dp).clip(RoundedCornerShape(999.dp)).clickable { onNavigate(Routes.DAYS) }.padding(4.dp),
         ) {
             for ((date, dayTier) in state.week) {
                 TierDot(tier = dayTier, size = 10.dp, ringed = date == state.today)
             }
         }
     }
-    Text(text = state.dayTitle, color = tier.textColor().let { if (tier == Tier.UNKNOWN) Muted else it }, fontSize = 28.sp, lineHeight = 31.sp, fontWeight = FontWeight.Black)
     BodyLine(text = state.daySentence, color = tier.sublineColor())
 }
 
@@ -171,6 +184,8 @@ private data class TileSpec(
     val subline: String,
     val valueSize: TextUnit = 30.sp,
     val onClick: (() -> Unit)? = null,
+    /** A panel that forecasts nothing stays white and shows this link where the tier word would be. */
+    val plainLink: Pair<String, () -> Unit>? = null,
 )
 
 @Composable
@@ -202,14 +217,8 @@ private fun ComponentGrid(state: TodayUiState, onNavigate: (String) -> Unit) {
         subline = if (phase == null) "set your profile to read this" else "from ${phase.basis.replace('_', ' ')}, ${(phase.confidence * 100).toInt()} percent sure",
         valueSize = 22.sp,
     )
-    val sky = TileSpec(
-        title = "Sky",
-        tier = state.tier(Component.SKY),
-        value = "Coming next phase",
-        subline = "moon, weather and transits",
-        valueSize = 22.sp,
-        onClick = { onNavigate(Routes.SKY) },
-    )
+    val weather = environmentTile(state, onNavigate)
+    val sky = skyTile(state, onNavigate)
     val cravings = TileSpec(
         title = "Cravings",
         tier = state.tier(Component.CRAVINGS),
@@ -218,10 +227,14 @@ private fun ComponentGrid(state: TodayUiState, onNavigate: (String) -> Unit) {
         valueSize = 22.sp,
         onClick = { onNavigate(Routes.JOURNAL) },
     )
-    val rows = listOf(recovery to glucose, bp to hormones, sky to cravings)
+    val goals = goalsTile(state, onNavigate)
+    val rows = listOf(recovery to glucose, bp to hormones, weather to sky, cravings to goals)
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         for ((left, right) in rows) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 Tile(left, Modifier.weight(1f))
                 Tile(right, Modifier.weight(1f))
             }
@@ -229,17 +242,102 @@ private fun ComponentGrid(state: TodayUiState, onNavigate: (String) -> Unit) {
     }
 }
 
+/** The weather panel wears the ENVIRONMENT tier and reads pressure change and daylight. */
+private fun environmentTile(state: TodayUiState, onNavigate: (String) -> Unit): TileSpec {
+    val weather = state.sky?.weather
+    val change = weather?.pressureChange24h
+    val daylight = weather?.daylightMin?.let { SkyText.daylight(it) }
+    val noPlace = state.sky?.location?.mode == LocationMode.NONE
+    return TileSpec(
+        title = "Weather",
+        tier = state.tier(Component.ENVIRONMENT),
+        value = change?.let { "${SkyText.signed(it)} hPa" } ?: "--",
+        subline = when {
+            change != null && daylight != null -> "pressure in 24 hours, $daylight of daylight"
+            change != null -> "pressure in 24 hours"
+            daylight != null -> "$daylight of daylight"
+            noPlace -> "set a place to read this"
+            else -> "pressure and daylight"
+        },
+        valueSize = 22.sp,
+        onClick = { onNavigate(Routes.SKY) },
+    )
+}
+
+/** The sky panel wears the SKY tier: the moon, and a retrograde when transits are on. */
+private fun skyTile(state: TodayUiState, onNavigate: (String) -> Unit): TileSpec {
+    val sky = state.sky
+    val tier = state.tier(Component.SKY)
+    if (sky == null) {
+        return TileSpec(
+            title = "Sky", tier = tier, value = "--", subline = "moon, weather and transits",
+            valueSize = 22.sp, onClick = { onNavigate(Routes.SKY) },
+        )
+    }
+    val moon = sky.moon
+    val percent = SkyText.percent(moon.illumination)
+    val retro = if (sky.transitsOn) sky.retrogrades else emptyList()
+    val lead: Sky.RetrogradeStatus? = retro.firstOrNull { it.stationing } ?: retro.firstOrNull()
+    return if (lead != null) {
+        val line = SkyText.retrogradeLine(lead)
+        val rest = line.removePrefix("${lead.period.planet} retrograde").removePrefix(lead.period.planet).trim().trimStart(',').trim()
+        TileSpec(
+            title = "Sky", tier = tier,
+            value = "${lead.period.planet} retrograde",
+            subline = if (rest.isEmpty()) "Moon $percent percent" else "$rest. Moon $percent percent",
+            valueSize = 22.sp, onClick = { onNavigate(Routes.SKY) },
+        )
+    } else {
+        TileSpec(
+            title = "Sky", tier = tier,
+            value = SkyText.capitalized(moon.name.label),
+            subline = "$percent percent lit. ${SkyText.nextFull(moon, state.today)}",
+            valueSize = 22.sp, onClick = { onNavigate(Routes.SKY) },
+        )
+    }
+}
+
+/** Goals forecast nothing, so the panel stays white: habits done today, with a link to the tab. */
+private fun goalsTile(state: TodayUiState, onNavigate: (String) -> Unit): TileSpec {
+    val done = state.habitsDone
+    val total = state.habitsTotal
+    val open = { onNavigate(Routes.GOALS) }
+    return when {
+        done == null || total == null -> TileSpec(
+            title = "Habits", tier = Tier.UNKNOWN, value = "--", subline = "habits done today",
+            valueSize = 22.sp, onClick = open, plainLink = "Goals" to open,
+        )
+        total == 0 -> TileSpec(
+            title = "Habits", tier = Tier.UNKNOWN, value = "None yet", subline = "start one in Goals",
+            valueSize = 22.sp, onClick = open, plainLink = "Goals" to open,
+        )
+        else -> TileSpec(
+            title = "Habits", tier = Tier.UNKNOWN, value = "$done of $total",
+            subline = if (total == 1) "habit done today" else "habits done today",
+            valueSize = 22.sp, onClick = open, plainLink = "Goals" to open,
+        )
+    }
+}
+
 @Composable
 private fun Tile(spec: TileSpec, modifier: Modifier) {
+    val plain = spec.plainLink != null
     val tier = spec.tier
+    val main = if (plain) Ink else tier.textColor()
+    val sub = if (plain) BodyText else tier.sublineColor()
     val body: @Composable () -> Unit = {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(text = spec.title, color = tier.textColor(), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
-            Text(text = tier.label, color = tier.textColor(), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text(text = spec.title, color = if (plain) Muted else main, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+            val link = spec.plainLink
+            if (link != null) {
+                TextLink(text = link.first, onClick = link.second)
+            } else {
+                Text(text = tier.label, color = main, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+            }
         }
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
-                text = spec.value, color = tier.textColor(), fontSize = spec.valueSize,
+                text = spec.value, color = main, fontSize = spec.valueSize,
                 lineHeight = (spec.valueSize.value * 1.1f).sp, fontWeight = FontWeight.Black,
             )
             if (spec.valueSuffix != null) {
@@ -249,15 +347,20 @@ private fun Tile(spec: TileSpec, modifier: Modifier) {
                 )
             }
         }
-        Text(text = spec.subline, color = tier.sublineColor(), fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Bold)
+        Text(text = spec.subline, color = sub, fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Bold)
     }
-    if (tier == Tier.UNKNOWN) {
-        DashedCard(modifier = modifier.height(108.dp), onClick = spec.onClick) { body() }
-    } else {
-        SoftCard(
-            modifier = modifier.height(108.dp), color = tier.color(), radius = 24.dp,
+    val sized = modifier.fillMaxHeight().heightIn(min = 108.dp)
+    val padding = PaddingValues(horizontal = 15.dp, vertical = 13.dp)
+    when {
+        plain -> SoftCard(
+            modifier = sized, color = White, radius = 24.dp, shadowAlpha = 0.08f,
+            contentPadding = padding, gap = 3.dp, onClick = spec.onClick,
+        ) { body() }
+        tier == Tier.UNKNOWN -> DashedCard(modifier = sized, contentPadding = padding, onClick = spec.onClick) { body() }
+        else -> SoftCard(
+            modifier = sized, color = tier.hexColor(), radius = 24.dp,
             shadowColor = tier.shadowColor(), shadowAlpha = 0.2f,
-            contentPadding = PaddingValues(horizontal = 15.dp, vertical = 13.dp), gap = 3.dp,
+            contentPadding = padding, gap = 3.dp,
             onClick = spec.onClick,
         ) { body() }
     }
@@ -283,7 +386,7 @@ private fun MindCard(state: TodayUiState, onNavigate: (String) -> Unit) {
         DashedCard(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 13.dp), onClick = { onNavigate(Routes.CHECKIN) }) { content() }
     } else {
         SoftCard(
-            modifier = Modifier.fillMaxWidth(), color = tier.color(), radius = 24.dp,
+            modifier = Modifier.fillMaxWidth(), color = tier.hexColor(), radius = 24.dp,
             shadowColor = tier.shadowColor(), shadowAlpha = 0.2f,
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 13.dp), gap = 0.dp,
             onClick = { onNavigate(Routes.CHECKIN) },

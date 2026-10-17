@@ -85,7 +85,7 @@ fun FeelScreen(onDone: () -> Unit, onSayMore: () -> Unit, viewModel: FeelViewMod
                 .padding(start = 20.dp, end = 20.dp, top = 30.dp, bottom = 120.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            ScreenHeader(kicker = "Right now", title = "How are you, in your words?", titleSize = 28.sp) {
+            ScreenHeader(title = "How are you right now, in your words?", titleSize = 28.sp) {
                 TextLink(text = "Skip", onClick = onDone)
             }
 

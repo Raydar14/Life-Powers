@@ -4,6 +4,8 @@ import androidx.room.withTransaction
 import com.lifepowers.app.domain.ForecastRepository
 import com.lifepowers.app.domain.ForecastSnapshot
 import com.lifepowers.app.domain.ProfileRepository
+import com.lifepowers.app.domain.SkyTierSource
+import com.lifepowers.app.world.WorldPrefs
 import com.lifepowers.core.Component
 import com.lifepowers.core.Forecast
 import com.lifepowers.core.ForecastInput
@@ -12,6 +14,7 @@ import com.lifepowers.core.Metrics
 import com.lifepowers.core.Phase
 import com.lifepowers.core.Tier
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import javax.inject.Inject
@@ -24,6 +27,8 @@ class ForecastRepositoryImpl @Inject constructor(
     private val daily: DailyMetricDao,
     private val profiles: ProfileRepository,
     private val json: CheckinJson,
+    private val skyTiers: SkyTierSource,
+    private val worldPrefs: WorldPrefs,
 ) : ForecastRepository {
 
     override fun forDay(date: LocalDate): Flow<List<ForecastSnapshot>> =
@@ -42,7 +47,8 @@ class ForecastRepositoryImpl @Inject constructor(
     /**
      * Each component takes the z30 of its catalog metrics for the date, oriented so positive is
      * good. The hormonal component is a single calendar input from the phase label. Yesterday's
-     * stored tier for the same component damps the dead band.
+     * stored tier for the same component damps the dead band. The sky component carries the sky
+     * panel's own tier and only counts toward the day when transits are on.
      */
     override suspend fun recompute(date: LocalDate) {
         val iso = Dates.iso(date)
@@ -68,6 +74,8 @@ class ForecastRepositoryImpl @Inject constructor(
         }
         results += Forecast.compute(Component.HORMONAL, hormonalInputs, previousTier(yesterday, Component.HORMONAL))
 
+        skyResult(date)?.let { results += it }
+
         results += Forecast.day(results, previousTier(yesterday, Component.DAY))
 
         val rows = results.map {
@@ -77,6 +85,21 @@ class ForecastRepositoryImpl @Inject constructor(
             forecasts.deleteForDay(iso)
             forecasts.upsertAll(rows)
         }
+    }
+
+    /** The sky tier with a score only when transits are on, so [Forecast.day] ignores it otherwise. */
+    private suspend fun skyResult(date: LocalDate): ForecastResult? = runCatching {
+        val (tier, reasons) = skyTiers.tierFor(date)
+        val score = if (worldPrefs.skySettings.first().transitsOn) skyScore(tier) else null
+        ForecastResult(Component.SKY, tier, score, if (score != null) 1 else 0, reasons)
+    }.getOrNull()
+
+    private fun skyScore(tier: Tier): Double? = when (tier) {
+        Tier.BEST -> 1.0
+        Tier.GOOD -> 0.4
+        Tier.NOT_GREAT -> -0.4
+        Tier.LIKELY_HARD -> -1.0
+        Tier.UNKNOWN -> null
     }
 
     private suspend fun previousTier(isoDate: String, component: Component): Tier? =

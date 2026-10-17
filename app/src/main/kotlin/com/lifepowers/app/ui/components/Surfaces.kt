@@ -10,8 +10,11 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -37,6 +40,9 @@ import com.lifepowers.app.ui.theme.Lavender
 import com.lifepowers.app.ui.theme.LightPink
 import com.lifepowers.app.ui.theme.Muted
 import com.lifepowers.app.ui.theme.White
+import com.lifepowers.app.ui.theme.hexColor
+import com.lifepowers.app.ui.theme.shadowColor
+import com.lifepowers.core.Tier
 
 /** Soft layered shadow in plum, then the fill. Shadow before clip so it is not cut off. */
 fun Modifier.softShadow(shape: RoundedCornerShape, color: Color = Ink, alpha: Float = 0.18f, elevation: Dp = 10.dp): Modifier =
@@ -193,12 +199,6 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier, color: Color = Mut
     Text(text = text, modifier = modifier, color = color, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
 }
 
-/** Tiny uppercase kicker used on tinted hero cards. */
-@Composable
-fun Kicker(text: String, color: Color = com.lifepowers.app.ui.theme.Plum) {
-    Text(text = text.uppercase(), color = color, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
-}
-
 @Composable
 fun BodyLine(text: String, color: Color = BodyText, fontSize: TextUnit = 13.sp, lineHeight: TextUnit = 19.sp, modifier: Modifier = Modifier) {
     Text(text = text, color = color, fontSize = fontSize, lineHeight = lineHeight, fontWeight = FontWeight.Medium, modifier = modifier)
@@ -209,22 +209,79 @@ fun MutedLine(text: String, fontSize: TextUnit = 12.sp, modifier: Modifier = Mod
     Text(text = text, color = Muted, fontSize = fontSize, lineHeight = (fontSize.value * 1.45f).sp, fontWeight = FontWeight.SemiBold, modifier = modifier, textAlign = textAlign)
 }
 
-/** Date kicker above a heavy title, with an optional trailing control. */
+/**
+ * A heavy title with an optional sentence case line under it, and an optional trailing control.
+ * Nothing sits above the title.
+ */
 @Composable
 fun ScreenHeader(
-    kicker: String?,
     title: String,
     modifier: Modifier = Modifier,
     titleSize: TextUnit = 26.sp,
+    subline: String? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
+    val line = subline
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            if (kicker != null) Text(text = kicker, color = Muted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             Text(text = title, color = Ink, fontSize = titleSize, lineHeight = (titleSize.value * 1.15f).sp, fontWeight = FontWeight.Black)
+            if (line != null) Text(text = line, color = Muted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         }
         if (trailing != null) trailing()
     }
+}
+
+/** A card heading inside a white card: ink, 16sp, heavy. Used instead of small labels over content. */
+@Composable
+fun CardTitle(text: String, modifier: Modifier = Modifier, color: Color = Ink) {
+    Text(text = text, modifier = modifier, color = color, fontSize = 16.sp, lineHeight = 20.sp, fontWeight = FontWeight.Black)
+}
+
+/**
+ * A panel that wears a forecast tier: the tier color with its own shadow, or the pale dashed card for
+ * UNKNOWN. Color follows the thing it describes.
+ */
+@Composable
+fun TierCard(
+    tier: Tier,
+    modifier: Modifier = Modifier,
+    radius: Dp = 28.dp,
+    contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+    gap: Dp = 6.dp,
+    elevation: Dp = 14.dp,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    if (tier == Tier.UNKNOWN) {
+        DashedCard(modifier = modifier, radius = radius, contentPadding = contentPadding, gap = gap, onClick = onClick, content = content)
+    } else {
+        SoftCard(
+            modifier = modifier, color = tier.hexColor(), radius = radius,
+            shadowColor = tier.shadowColor(), shadowAlpha = 0.2f, elevation = elevation,
+            contentPadding = contentPadding, gap = gap, onClick = onClick, content = content,
+        )
+    }
+}
+
+/** A small filled circle, for list markers. A shape, not an icon. */
+@Composable
+fun Dot(color: Color, size: Dp = 12.dp, modifier: Modifier = Modifier) {
+    Box(modifier = modifier.size(size).clip(CircleShape).background(color))
+}
+
+/** The palette switch: hot pink track when on, hairline track when off, white thumb. */
+@Composable
+fun PinkSwitch(checked: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+    Switch(
+        checked = checked,
+        onCheckedChange = onChange,
+        modifier = modifier,
+        colors = SwitchDefaults.colors(
+            checkedThumbColor = White, checkedTrackColor = HotPink, checkedBorderColor = HotPink,
+            uncheckedThumbColor = White, uncheckedTrackColor = com.lifepowers.app.ui.theme.HairLine,
+            uncheckedBorderColor = com.lifepowers.app.ui.theme.HairLine,
+        ),
+    )
 }
 
 /** A plain text link in deep pink, 12sp 900. */

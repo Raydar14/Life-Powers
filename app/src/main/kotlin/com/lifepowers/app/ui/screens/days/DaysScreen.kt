@@ -55,7 +55,7 @@ fun DaysScreen(onBack: () -> Unit, viewModel: DaysViewModel = hiltViewModel()) {
                 .padding(start = 20.dp, end = 20.dp, top = 30.dp, bottom = 120.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            ScreenHeader(kicker = Fmt.month(state.today), title = "Your days", titleSize = 28.sp) {
+            ScreenHeader(title = "Your days", subline = Fmt.month(state.today), titleSize = 28.sp) {
                 TextLink(text = "Back", onClick = onBack)
             }
 
@@ -96,7 +96,7 @@ fun DaysScreen(onBack: () -> Unit, viewModel: DaysViewModel = hiltViewModel()) {
 
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
                 Text(
-                    text = if (state.selected == state.today) "Today" else Fmt.dateKicker(state.selected),
+                    text = if (state.selected == state.today) "Today" else Fmt.dateLine(state.selected),
                     color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Black,
                 )
                 val tier = state.tiers[state.selected] ?: Tier.UNKNOWN
