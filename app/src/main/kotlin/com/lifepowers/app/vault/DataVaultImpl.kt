@@ -27,13 +27,17 @@ import com.lifepowers.app.data.LifePowersDatabase
 import com.lifepowers.app.data.personal.PersonalDatabase
 import com.lifepowers.app.data.personal.PhotoVault
 import com.lifepowers.app.domain.BackupSummary
+import com.lifepowers.app.domain.BreathSessionController
 import com.lifepowers.app.domain.DataResult
 import com.lifepowers.app.domain.DataVault
+import com.lifepowers.app.domain.HeartLink
 import com.lifepowers.app.domain.ReminderScheduler
+import com.lifepowers.app.domain.TimerController
 import com.lifepowers.core.BackupCrypto
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -73,6 +77,9 @@ class DataVaultImpl @Inject constructor(
     private val photoVault: PhotoVault,
     private val store: DataStore<Preferences>,
     private val reminderScheduler: ReminderScheduler,
+    private val breathSession: BreathSessionController,
+    private val timer: TimerController,
+    private val heartLink: HeartLink,
 ) : DataVault {
 
     private val mutex = Mutex()
@@ -239,16 +246,31 @@ class DataVaultImpl @Inject constructor(
             },
         )
 
-        val photos = restorePhotos(obj["photos"] as? JsonArray ?: JsonArray(emptyList()))
-        runCatching { removeUnreferencedPhotoFiles() }
+        // The old records are gone from here on, so the rest runs even if the screen is left, and the
+        // message says plainly what did not come back instead of reporting a failure.
+        return withContext(NonCancellable) {
+            val missed = mutableListOf<String>()
+            val photos = try {
+                restorePhotos(obj["photos"] as? JsonArray ?: JsonArray(emptyList()))
+            } catch (e: Exception) {
+                missed.add("some photos"); 0
+            }
+            runCatching { removeUnreferencedPhotoFiles() }
+            (obj["settings"] as? JsonObject)?.let { settings ->
+                try {
+                    restoreSettings(settings)
+                } catch (e: Exception) {
+                    missed.add("your settings")
+                }
+            }
 
-        (obj["settings"] as? JsonObject)?.let { restoreSettings(it) }
+            // Goal reminders live in alarms, not in the database, so arm them for the restored goals.
+            runCatching { reminderScheduler.rescheduleAll() }
 
-        // Goal reminders live in alarms, not in the database, so arm them for the restored goals.
-        runCatching { reminderScheduler.rescheduleAll() }
-
-        val summary = summaryOf(main, personal, photos)
-        return DataResult.Done(summary, "Restored ${summaryText(summary)}.")
+            val summary = summaryOf(main, personal, photos)
+            val tail = if (missed.isEmpty()) "" else " " + missed.joinToString(" and ").replaceFirstChar { it.uppercase() } + " could not be restored."
+            DataResult.Done(summary, "Restored ${summaryText(summary)}.$tail")
+        }
     }
 
     /**
@@ -485,6 +507,10 @@ class DataVaultImpl @Inject constructor(
     // Delete everything
 
     private suspend fun doDelete(): DataResult {
+        // A session still running would save itself again after the tables are cleared.
+        runCatching { breathSession.cancel() }
+        runCatching { timer.cancel() }
+        runCatching { heartLink.disconnect() }
         mainDb.clearAllTables()
         personalDb.clearAllTables()
 
