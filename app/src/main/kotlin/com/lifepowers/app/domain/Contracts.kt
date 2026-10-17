@@ -71,6 +71,7 @@ object EventKinds {
     const val TAROT_PULL = "tarot_pull"
     const val SCREENS_IN_BED = "screens_in_bed"
     const val HORMONE_DOSE = "hormone_dose"
+    const val HABIT_SESSION = "habit_session"
     fun symptom(kind: String) = "symptom.$kind"
 }
 

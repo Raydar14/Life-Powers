@@ -450,7 +450,7 @@ Canonical unit in brackets. Day assignment rule tells the rollup which local day
 
 - forecast.tier is derived from forecast.score with the thresholds in DESIGN.md section 3.4, and is
   'unknown' whenever forecast.inputs_used is below 3, or below the number of inputs a component is
-  built from when that is fewer (metabolic uses 2, environment and hormonal 1). The thresholds are
+  built from when that is fewer (metabolic uses 2, hormonal 1). Environment needs 2 of its 3 (daylight, pressure swing, air quality), since air quality is missing in some places. Sky does not use z scores; its tier comes from retrograde stations and sky events (DESIGN.md 5B). The thresholds are
   settings, the colors are fixed.
 
 - Spoken symptom severity maps intensity words to 1 to 5: a little or slight 1, some or mild 2, no

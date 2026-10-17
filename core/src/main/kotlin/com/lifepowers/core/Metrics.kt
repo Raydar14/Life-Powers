@@ -71,6 +71,16 @@ object Metrics {
     const val WEATHER_PRESSURE_CHANGE_24H = "weather.pressure_change_24h"
     const val WEATHER_DAYLIGHT_MIN = "weather.daylight_min"
     const val MOON_ILLUMINATION = "moon.illumination"
+    const val WEATHER_PRESSURE_MEAN = "weather.pressure_mean"
+    const val WEATHER_PRESSURE_SWING = "weather.pressure_swing"
+    const val WEATHER_TEMP_MAX = "weather.temp_max"
+    const val WEATHER_TEMP_MIN = "weather.temp_min"
+    const val WEATHER_HUMIDITY_MEAN = "weather.humidity_mean"
+    const val WEATHER_UV_MAX = "weather.uv_max"
+    const val AIR_PM25 = "air.pm25"
+    const val AIR_AQI_MAX = "air.aqi_max"
+    const val SPACE_KP_MAX = "space.kp_max"
+    const val HABIT_MINUTES = "habit.minutes"
 
     val catalog: Map<String, MetricSpec> = listOf(
         MetricSpec(SLEEP_TOTAL_MIN, "min", DayRule.NIGHT_ENDING, listOf(Agg.LAST), true),
@@ -127,6 +137,16 @@ object Metrics {
         MetricSpec(WEATHER_PRESSURE_CHANGE_24H, "hPa", DayRule.CALENDAR, listOf(Agg.LAST)),
         MetricSpec(WEATHER_DAYLIGHT_MIN, "min", DayRule.CALENDAR, listOf(Agg.LAST), true),
         MetricSpec(MOON_ILLUMINATION, "0..1", DayRule.CALENDAR, listOf(Agg.LAST)),
+        MetricSpec(WEATHER_PRESSURE_MEAN, "hPa", DayRule.CALENDAR, listOf(Agg.LAST)),
+        MetricSpec(WEATHER_PRESSURE_SWING, "hPa", DayRule.CALENDAR, listOf(Agg.LAST), false),
+        MetricSpec(WEATHER_TEMP_MAX, "C", DayRule.CALENDAR, listOf(Agg.LAST)),
+        MetricSpec(WEATHER_TEMP_MIN, "C", DayRule.CALENDAR, listOf(Agg.LAST)),
+        MetricSpec(WEATHER_HUMIDITY_MEAN, "%", DayRule.CALENDAR, listOf(Agg.LAST)),
+        MetricSpec(WEATHER_UV_MAX, "index", DayRule.CALENDAR, listOf(Agg.LAST)),
+        MetricSpec(AIR_PM25, "ug/m3", DayRule.CALENDAR, listOf(Agg.LAST), false),
+        MetricSpec(AIR_AQI_MAX, "index", DayRule.CALENDAR, listOf(Agg.LAST), false),
+        MetricSpec(SPACE_KP_MAX, "Kp", DayRule.CALENDAR, listOf(Agg.LAST)),
+        MetricSpec(HABIT_MINUTES, "min", DayRule.CALENDAR, listOf(Agg.SUM), true),
     ).associateBy { it.key }
 
     fun spec(key: String): MetricSpec = catalog[key] ?: MetricSpec(key, "", DayRule.CALENDAR, listOf(Agg.LAST))
