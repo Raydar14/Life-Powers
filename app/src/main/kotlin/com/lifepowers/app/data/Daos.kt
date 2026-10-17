@@ -21,6 +21,9 @@ interface MetricSampleDao {
         "SELECT * FROM metric_sample WHERE metric = :metric AND is_canonical = 1 AND start_utc BETWEEN :fromUtc AND :toUtc ORDER BY start_utc",
     )
     suspend fun forMetricBetween(metric: String, fromUtc: Long, toUtc: Long): List<MetricSampleEntity>
+
+    @Query("DELETE FROM metric_sample WHERE source = :source AND start_utc = :startUtc")
+    suspend fun deleteAt(source: String, startUtc: Long)
 }
 
 @Dao

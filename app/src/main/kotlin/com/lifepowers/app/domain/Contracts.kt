@@ -71,6 +71,7 @@ object EventKinds {
     const val TAROT_PULL = "tarot_pull"
     const val SCREENS_IN_BED = "screens_in_bed"
     const val HORMONE_DOSE = "hormone_dose"
+    const val HABIT_SESSION = "habit_session"
     fun symptom(kind: String) = "symptom.$kind"
 }
 
@@ -132,6 +133,8 @@ interface MetricRepository {
     fun dailyBetween(from: LocalDate, to: LocalDate): Flow<List<DailyMetricPoint>>
     suspend fun series(metric: String, agg: Agg, lastDays: Int, endInclusive: LocalDate): List<DailyMetricPoint>
     suspend fun samplesBetween(metric: String, fromUtcMs: Long, toUtcMs: Long): List<Sample>
+    /** Removes every sample a source wrote at one moment, such as a journal entry's word scores. */
+    suspend fun deleteSamples(source: String, startUtcMs: Long)
 }
 
 interface EventRepository {

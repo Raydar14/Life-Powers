@@ -78,15 +78,19 @@ object Forecast {
         ),
         Component.ENVIRONMENT to mapOf(
             Metrics.WEATHER_DAYLIGHT_MIN to 0.8,
+            Metrics.WEATHER_PRESSURE_SWING to 1.0,
+            Metrics.AIR_PM25 to 0.8,
         ),
     )
 
     /**
      * Inputs a component needs before it shows a tier: three, or every input it is configured with
-     * when it has fewer, so a panel built on one or two signals can still speak.
+     * when it has fewer, so a panel built on one or two signals can still speak. Environment speaks
+     * from two of its three, since air quality is missing in some places.
      */
     fun minInputs(component: Component): Int = when (component) {
         Component.DAY -> MIN_INPUTS
+        Component.ENVIRONMENT -> 2
         else -> minOf(MIN_INPUTS, componentInputs[component]?.size ?: 1)
     }
 

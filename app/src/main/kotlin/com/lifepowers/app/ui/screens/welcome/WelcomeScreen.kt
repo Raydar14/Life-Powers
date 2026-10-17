@@ -31,7 +31,6 @@ import com.lifepowers.app.domain.UserProfileState
 import com.lifepowers.app.ui.components.Chip
 import com.lifepowers.app.ui.components.CloudPresets
 import com.lifepowers.app.ui.components.Clouds
-import com.lifepowers.app.ui.components.Kicker
 import com.lifepowers.app.ui.components.MutedLine
 import com.lifepowers.app.ui.components.SoftCard
 import com.lifepowers.app.ui.components.TierDot
@@ -108,7 +107,6 @@ fun WelcomeScreen(onSetUp: () -> Unit, onPlayFirst: () -> Unit, viewModel: Welco
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 22.dp), gap = 8.dp,
                 onClick = onSetUp,
             ) {
-                Kicker("Door one", color = LightPink)
                 Text(text = "Set me up properly", color = White, fontSize = 24.sp, lineHeight = 28.sp, fontWeight = FontWeight.Black)
                 Text(
                     text = "Ten to fifteen minutes in short pieces: your devices, your profile, your place, your words, your goals. Leave and come back any time.",
@@ -129,7 +127,6 @@ fun WelcomeScreen(onSetUp: () -> Unit, onPlayFirst: () -> Unit, viewModel: Welco
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 22.dp), gap = 8.dp,
                 onClick = { viewModel.playFirst(onPlayFirst) },
             ) {
-                Kicker("Door two", color = DeepPink)
                 Text(text = "Let me play first", color = Ink, fontSize = 24.sp, lineHeight = 28.sp, fontWeight = FontWeight.Black)
                 Text(
                     text = "Open the app with sample data and touch everything. A small card on Today will offer one setup piece at a time, whenever you feel like it.",

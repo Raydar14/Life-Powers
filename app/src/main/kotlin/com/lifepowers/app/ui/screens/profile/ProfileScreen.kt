@@ -38,7 +38,6 @@ import com.lifepowers.app.ui.components.Chip
 import com.lifepowers.app.ui.components.CloudPresets
 import com.lifepowers.app.ui.components.Clouds
 import com.lifepowers.app.ui.components.Fmt
-import com.lifepowers.app.ui.components.Kicker
 import com.lifepowers.app.ui.components.MutedLine
 import com.lifepowers.app.ui.components.PrimaryButton
 import com.lifepowers.app.ui.components.ScreenHeader
@@ -77,7 +76,7 @@ fun ProfileScreen(onSaved: () -> Unit, onBack: () -> Unit, viewModel: ProfileVie
                 .padding(start = 20.dp, end = 20.dp, top = 30.dp, bottom = 120.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            ScreenHeader(kicker = null, title = "About you", titleSize = 28.sp) {
+            ScreenHeader(title = "About you", titleSize = 28.sp) {
                 TextLink(text = "Back", onClick = onBack)
             }
             MutedLine(text = "This decides how the app reads your hormones. Every change is dated so the past stays true.", fontSize = 13.sp)
@@ -92,8 +91,8 @@ fun ProfileScreen(onSaved: () -> Unit, onBack: () -> Unit, viewModel: ProfileVie
                 modifier = Modifier.fillMaxWidth(), color = Lavender, shadowColor = DeepLavenderLine, shadowAlpha = 0.22f, elevation = 14.dp,
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp), gap = 4.dp,
             ) {
-                Kicker("How your cycle is read", color = DeepLavender)
                 Text(text = f.model.title(), color = Ink, fontSize = 20.sp, fontWeight = FontWeight.Black)
+                Text(text = "How your cycle is read", color = DeepLavender, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
                 Text(text = f.model.explain(), color = BodyText, fontSize = 12.sp, lineHeight = 17.sp, fontWeight = FontWeight.SemiBold)
             }
 

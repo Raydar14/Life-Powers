@@ -100,8 +100,8 @@ object CloudPresets {
         CloudSpec(Lavender, 280.dp, x = (-140).dp, y = 120.dp, alpha = 0.4f),
         CloudSpec(SoftBlue, 260.dp, x = (-60).dp, y = (-120).dp, alpha = 0.4f, fromEnd = true, fromBottom = true),
     )
-    val placeholder = listOf(
-        CloudSpec(SoftBlue, 240.dp, x = (-80).dp, y = (-90).dp, alpha = 0.4f, fromEnd = true),
-        CloudSpec(LightPink, 200.dp, x = (-100).dp, y = 140.dp, alpha = 0.35f),
+    val sky = listOf(
+        CloudSpec(SoftBlue, 260.dp, x = (-40).dp, y = (-100).dp, alpha = 0.45f),
+        CloudSpec(Lavender, 200.dp, x = (-90).dp, y = 40.dp, alpha = 0.35f, fromEnd = true),
     )
 }

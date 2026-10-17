@@ -16,12 +16,14 @@ import kotlin.math.roundToInt
 
 /** Small formatting helpers shared by the screens. */
 object Fmt {
-    private val dayKicker = DateTimeFormatter.ofPattern("EEEE, MMMM d", Locale.getDefault())
+    private val dayLine = DateTimeFormatter.ofPattern("EEEE, MMMM d", Locale.getDefault())
     private val monthOnly = DateTimeFormatter.ofPattern("MMMM", Locale.getDefault())
     private val shortDay = DateTimeFormatter.ofPattern("MMM d", Locale.getDefault())
     private val clock = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
 
-    fun dateKicker(date: LocalDate): String = date.format(dayKicker)
+    /** "Thursday, October 16", for a sentence case line under a title. */
+    fun dateLine(date: LocalDate): String = date.format(dayLine)
+
     fun month(date: LocalDate): String = date.format(monthOnly)
     fun shortDate(date: LocalDate): String = date.format(shortDay)
 

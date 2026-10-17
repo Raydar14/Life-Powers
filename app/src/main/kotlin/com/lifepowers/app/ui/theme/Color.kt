@@ -30,6 +30,20 @@ fun Tier.color(): Color = when (this) {
     Tier.UNKNOWN -> Ground
 }
 
+/** The tier's own hex from core, parsed. Same values as [color]. */
+fun Tier.hexColor(): Color = parseHex(hex)
+
+/** "#RRGGBB" or "#AARRGGBB" to a Color. Falls back to the ground on anything else. */
+fun parseHex(hex: String): Color {
+    val digits = hex.removePrefix("#")
+    val argb = when (digits.length) {
+        6 -> digits.toLongOrNull(16)?.let { it or 0xFF000000L }
+        8 -> digits.toLongOrNull(16)
+        else -> null
+    } ?: return Ground
+    return Color(argb.toInt())
+}
+
 /** Main text on a panel wearing this tier. */
 fun Tier.textColor(): Color = when (this) {
     Tier.BEST -> PanelInkOnHot

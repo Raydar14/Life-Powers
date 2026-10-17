@@ -101,7 +101,6 @@ fun CheckinScreen(onBack: () -> Unit, viewModel: CheckinViewModel = hiltViewMode
             }
 
             Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(text = Fmt.timeOfDay(), color = Muted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 Text(text = prompt, color = Ink, fontSize = 26.sp, lineHeight = 31.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
                 MutedLine(text = "Talk for a minute. The audio never leaves your phone.", fontSize = 13.sp, textAlign = TextAlign.Center)
             }
@@ -192,7 +191,6 @@ private fun TalkButton(state: CheckinSessionController.State, onStart: () -> Uni
 @Composable
 private fun CrisisCard(text: String) {
     SoftCard(modifier = Modifier.fillMaxWidth(), color = Ink, shadowAlpha = 0.28f, elevation = 14.dp, gap = 8.dp) {
-        Text(text = "Before anything else", color = LightPink, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
         Text(text = text, color = White, fontSize = 16.sp, lineHeight = 23.sp, fontWeight = FontWeight.Bold)
         Text(text = "This recording is not scored. You matter more than a data point.", color = Lavender, fontSize = 12.sp, lineHeight = 17.sp, fontWeight = FontWeight.SemiBold)
     }

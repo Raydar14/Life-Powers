@@ -1,18 +1,32 @@
+@file:OptIn(ExperimentalTextApi::class)
+
 package com.lifepowers.app.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.lifepowers.app.R
 
-/*
- * The design calls for Nunito at weights 500 to 900. Loading it through the Google Fonts provider
- * needs the certificates resource (R.array.com_google_android_gms_fonts_certs), which the UI layer
- * cannot add. Until it exists the app uses the platform rounded sans serif at the same weights.
- * See app/NEEDS-ui.md.
- */
-val LifePowersFontFamily: FontFamily = FontFamily.SansSerif
+/** One Nunito weight from the bundled variable font, with the matching wght axis set. */
+private fun nunito(weight: Int): Font = Font(
+    R.font.nunito,
+    weight = FontWeight(weight),
+    variationSettings = FontVariation.Settings(FontVariation.weight(weight)),
+)
+
+/** Nunito at weights 500 to 900, from res/font/nunito.ttf (a variable font). */
+val LifePowersFontFamily: FontFamily = FontFamily(
+    nunito(500),
+    nunito(600),
+    nunito(700),
+    nunito(800),
+    nunito(900),
+)
 
 val LifePowersTypography = Typography(
     displayLarge = TextStyle(fontFamily = LifePowersFontFamily, fontWeight = FontWeight.Black, fontSize = 40.sp, lineHeight = 42.sp),

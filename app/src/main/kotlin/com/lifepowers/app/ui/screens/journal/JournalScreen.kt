@@ -8,12 +8,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -21,16 +19,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lifepowers.app.domain.BehaviorEvent
 import com.lifepowers.app.domain.EventKinds
+import com.lifepowers.app.domain.JournalEntry
+import com.lifepowers.app.domain.Photo
 import com.lifepowers.app.ui.components.BodyLine
 import com.lifepowers.app.ui.components.Chip
 import com.lifepowers.app.ui.components.CloudPresets
@@ -40,33 +43,36 @@ import com.lifepowers.app.ui.components.HotButton
 import com.lifepowers.app.ui.components.InkButton
 import com.lifepowers.app.ui.components.MutedLine
 import com.lifepowers.app.ui.components.PillButton
-import com.lifepowers.app.ui.components.ScreenHeader
-import com.lifepowers.app.ui.components.SectionLabel
+import com.lifepowers.app.ui.components.PrimaryButton
 import com.lifepowers.app.ui.components.SoftCard
 import com.lifepowers.app.ui.components.TextLink
 import com.lifepowers.app.ui.components.WrapRow
 import com.lifepowers.app.ui.components.dashedBorder
 import com.lifepowers.app.ui.navigation.Routes
+import com.lifepowers.app.ui.theme.BodyText
 import com.lifepowers.app.ui.theme.HairLine
 import com.lifepowers.app.ui.theme.HotPink
 import com.lifepowers.app.ui.theme.Ink
+import com.lifepowers.app.ui.theme.Lavender
 import com.lifepowers.app.ui.theme.LightPink
 import com.lifepowers.app.ui.theme.Muted
 import com.lifepowers.core.SymptomParser
+import java.time.LocalDate
 
-/** What is open inline below the cards. */
+/** What is open inline inside the logging cards. */
 private sealed interface Sheet {
-    data object Write : Sheet
-    data class Soon(val what: String) : Sheet
     data class Food(val kind: String, val label: String) : Sheet
     data class Symptom(val kind: String) : Sheet
     data class Behavior(val kind: String, val label: String) : Sheet
 }
 
+private const val ENTRIES_SHOWN = 5
+
 @Composable
 fun JournalScreen(onNavigate: (String) -> Unit, viewModel: JournalViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var sheet by remember { mutableStateOf<Sheet?>(null) }
+    var showAll by rememberSaveable { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Clouds(CloudPresets.journal)
@@ -78,34 +84,39 @@ fun JournalScreen(onNavigate: (String) -> Unit, viewModel: JournalViewModel = hi
                 .padding(start = 20.dp, end = 20.dp, top = 26.dp, bottom = 120.dp),
             verticalArrangement = Arrangement.spacedBy(11.dp),
         ) {
-            ScreenHeader(kicker = Fmt.dateKicker(state.today), title = "Journal") {
-                HotButton(text = "Talk", onClick = { onNavigate(Routes.CHECKIN) })
+            JournalTitle(title = "Journal") {
+                HotButton(text = "Check in", onClick = { onNavigate(Routes.CHECKIN) })
             }
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                QuickTile("Write", Modifier.weight(1f)) { sheet = if (sheet == Sheet.Write) null else Sheet.Write }
-                QuickTile("Photo", Modifier.weight(1f)) { sheet = Sheet.Soon("Photos") }
-                QuickTile("Pull a card", Modifier.weight(1f)) { sheet = Sheet.Soon("Tarot pulls") }
-                QuickTile("Say a symptom", Modifier.weight(1f), background = LightPink, shadowColor = HotPink) { onNavigate(Routes.CHECKIN) }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                PrimaryButton(text = "Write or talk", onClick = { onNavigate(JournalRoutes.entry(0)) }, modifier = Modifier.weight(1f))
+                PillButton(
+                    text = "Pull a card", onClick = { onNavigate(JournalRoutes.pull(0)) },
+                    background = LightPink, shadowColor = HotPink, shadowAlpha = 0.18f,
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                )
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextLink(text = "Tarot log", onClick = { onNavigate(JournalRoutes.TAROT) }, fontSize = 13.sp)
             }
 
             val current = sheet
-            if (current == Sheet.Write) {
-                WriteCard(onSave = { note -> viewModel.add(EventKinds.JOURNAL, note = note); sheet = null }, onCancel = { sheet = null })
-            }
-            if (current is Sheet.Soon) {
-                SoftCard(modifier = Modifier.fillMaxWidth(), radius = 24.dp, gap = 4.dp) {
-                    Text(text = "${current.what} arrive in the next phase", color = Ink, fontSize = 15.sp, fontWeight = FontWeight.Black)
-                    MutedLine(text = "The journal keeps its words for now. Tap again to close.", modifier = Modifier.fillMaxWidth())
-                    TextLink(text = "Close", onClick = { sheet = null })
-                }
-            }
 
             FoodCard(
                 cravingCount = state.cravingCount,
                 open = current as? Sheet.Food,
                 onPick = { kind, label -> sheet = if ((current as? Sheet.Food)?.kind == kind) null else Sheet.Food(kind, label) },
                 onSave = { kind, intensity -> viewModel.add(kind, quantity = intensity.toDouble(), unit = "intensity"); sheet = null },
+            )
+
+            RecentEntries(
+                entries = state.entries,
+                loaded = state.loaded,
+                today = state.today,
+                showAll = showAll,
+                onToggleAll = { showAll = !showAll },
+                thumb = { photo -> viewModel.thumb(photo) },
+                onOpen = { id -> onNavigate(JournalRoutes.entry(id)) },
             )
 
             SymptomCard(
@@ -126,41 +137,74 @@ fun JournalScreen(onNavigate: (String) -> Unit, viewModel: JournalViewModel = hi
 }
 
 @Composable
-private fun QuickTile(
-    label: String,
-    modifier: Modifier,
-    background: androidx.compose.ui.graphics.Color = com.lifepowers.app.ui.theme.White,
-    shadowColor: androidx.compose.ui.graphics.Color = Ink,
-    onClick: () -> Unit,
+private fun RecentEntries(
+    entries: List<JournalEntry>,
+    loaded: Boolean,
+    today: LocalDate,
+    showAll: Boolean,
+    onToggleAll: () -> Unit,
+    thumb: suspend (Photo) -> ImageBitmap?,
+    onOpen: (Long) -> Unit,
 ) {
-    SoftCard(
-        modifier = modifier, color = background, radius = 20.dp, shadowColor = shadowColor, shadowAlpha = 0.1f,
-        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 12.dp), onClick = onClick,
-    ) {
-        Text(
-            text = label, color = Ink, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1,
-            modifier = Modifier.fillMaxWidth(), textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-        )
+    Column(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+        CardTitle(text = "Recent entries", fontSize = 18.sp, modifier = Modifier.padding(horizontal = 4.dp))
+        if (loaded && entries.isEmpty()) {
+            SoftCard(modifier = Modifier.fillMaxWidth(), gap = 4.dp) {
+                BodyLine(text = "Nothing written in the last 30 days.", fontSize = 14.sp)
+                MutedLine(text = "Write a line or say a few words whenever you like. Entries stay on this phone.")
+            }
+        }
+        val shown = if (showAll) entries else entries.take(ENTRIES_SHOWN)
+        for (entry in shown) {
+            EntryCard(entry = entry, today = today, thumb = thumb, onOpen = { onOpen(entry.id) })
+        }
+        if (entries.size > ENTRIES_SHOWN) {
+            TextLink(
+                text = if (showAll) "Show fewer" else "Show all ${entries.size} from the last 30 days",
+                onClick = onToggleAll,
+                fontSize = 13.sp,
+            )
+        }
     }
 }
 
 @Composable
-private fun WriteCard(onSave: (String) -> Unit, onCancel: () -> Unit) {
-    var text by remember { mutableStateOf("") }
-    SoftCard(modifier = Modifier.fillMaxWidth(), radius = 24.dp, gap = 10.dp) {
-        SectionLabel("A plain place to write")
-        OutlinedTextField(
-            value = text,
-            onValueChange = { text = it },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("How was it, really?", color = Muted) },
-            minLines = 3,
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = HotPink, unfocusedBorderColor = HairLine, cursorColor = HotPink),
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            InkButton(text = "Save", onClick = { onSave(text) })
-            PillButton(text = "Cancel", onClick = onCancel, shadowAlpha = 0.08f, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp))
+private fun EntryCard(entry: JournalEntry, today: LocalDate, thumb: suspend (Photo) -> ImageBitmap?, onOpen: () -> Unit) {
+    SoftCard(modifier = Modifier.fillMaxWidth(), gap = 8.dp, onClick = onOpen) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            CardTitle(text = JournalDates.day(entry.localDate, today), modifier = Modifier.weight(1f))
+            Text(text = Fmt.timeAt(entry.createdUtcMs, entry.zoneOffsetMin), color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+        val body = listOf(entry.text, entry.voiceTranscript.orEmpty())
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .joinToString("\n")
+        if (body.isNotEmpty()) {
+            Text(
+                text = body, color = BodyText, fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium,
+                maxLines = 3, overflow = TextOverflow.Ellipsis,
+            )
+        } else if (entry.photos.isEmpty() && entry.pulls.isEmpty()) {
+            MutedLine(text = "An empty page, open it to write.")
+        }
+        if (entry.photos.isNotEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                for (photo in entry.photos.take(4)) {
+                    PhotoTile(photo = photo, load = thumb, modifier = Modifier.size(64.dp), radius = 18.dp)
+                }
+                val more = entry.photos.size - 4
+                if (more > 0) Text(text = "and $more more", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        if (entry.pulls.isNotEmpty()) {
+            WrapRow {
+                for (pull in entry.pulls) {
+                    Chip(text = cardLine(pull.card, pull.reversed), background = Lavender, fontSize = 12.sp)
+                }
+            }
+        }
+        if (entry.tags.isNotEmpty()) {
+            MutedLine(text = entry.tags.joinToString(", "))
         }
     }
 }
@@ -187,7 +231,7 @@ private fun IntensityRow(label: String, value: Int, onChange: (Int) -> Unit, onS
 private fun FoodCard(cravingCount: Int, open: Sheet.Food?, onPick: (String, String) -> Unit, onSave: (String, Int) -> Unit) {
     SoftCard(modifier = Modifier.fillMaxWidth(), radius = 24.dp, contentPadding = PaddingValues(horizontal = 16.dp, vertical = 13.dp), gap = 10.dp) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            SectionLabel("Food, no judgment")
+            CardTitle("Food, no judgment")
             Text(
                 text = if (cravingCount < 14) "pattern forming, $cravingCount of 14" else "$cravingCount logged",
                 color = Muted, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold,
@@ -216,7 +260,7 @@ private fun FoodCard(cravingCount: Int, open: Sheet.Food?, onPick: (String, Stri
 @Composable
 private fun SymptomCard(open: Sheet.Symptom?, onPick: (String) -> Unit, onSave: (String, Int) -> Unit) {
     SoftCard(modifier = Modifier.fillMaxWidth(), radius = 24.dp, contentPadding = PaddingValues(horizontal = 16.dp, vertical = 13.dp), gap = 10.dp) {
-        SectionLabel("Symptoms, tap one")
+        CardTitle("Symptoms, tap one")
         WrapRow {
             for (kind in SymptomParser.catalog.keys) {
                 Chip(text = Fmt.kindName(kind), selected = open?.kind == kind, onClick = { onPick(kind) })
@@ -232,7 +276,7 @@ private fun SymptomCard(open: Sheet.Symptom?, onPick: (String) -> Unit, onSave: 
 @Composable
 private fun BehaviorCard(open: Sheet.Behavior?, onPick: (String, String) -> Unit, onSave: (String) -> Unit) {
     SoftCard(modifier = Modifier.fillMaxWidth(), radius = 24.dp, contentPadding = PaddingValues(horizontal = 16.dp, vertical = 13.dp), gap = 10.dp) {
-        SectionLabel("Things you did")
+        CardTitle("Things you did")
         WrapRow {
             for ((kind, label) in Fmt.behaviorKinds) {
                 Chip(text = label, background = if (open?.kind == kind) LightPink else com.lifepowers.app.ui.theme.Ground, onClick = { onPick(kind, label) })
@@ -250,7 +294,7 @@ private fun BehaviorCard(open: Sheet.Behavior?, onPick: (String, String) -> Unit
 @Composable
 private fun TodayEvents(events: List<BehaviorEvent>, onDelete: (Long) -> Unit) {
     SoftCard(modifier = Modifier.fillMaxWidth(), radius = 24.dp, contentPadding = PaddingValues(horizontal = 16.dp, vertical = 13.dp), gap = 8.dp) {
-        SectionLabel("Today so far")
+        CardTitle("Today so far")
         if (events.isEmpty()) {
             MutedLine(text = "Nothing logged yet. A missed day is a missing value, not a penalty.")
         }
