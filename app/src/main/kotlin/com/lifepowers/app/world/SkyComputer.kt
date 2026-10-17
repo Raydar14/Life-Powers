@@ -50,7 +50,7 @@ class SkyComputer @Inject constructor(private val prefs: WorldPrefs) {
         val key = Key(date, location, transitsOn, _tick.value)
         cache[key] ?: run {
             val readings = prefs.kpReadings()
-            val weather = prefs.weather().firstOrNull { it.date == date }
+            val weather = if (location.point == null) null else prefs.weather().firstOrNull { it.date == date }
             val result = withContext(Dispatchers.Default) {
                 build(date, location, transitsOn, readings, weather, System.currentTimeMillis(), ZoneId.systemDefault())
             }

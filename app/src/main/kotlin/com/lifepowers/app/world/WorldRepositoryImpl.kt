@@ -82,7 +82,14 @@ class WorldRepositoryImpl @Inject constructor(
             label = if (setting.mode == LocationMode.NONE) null else setting.label,
             updatedUtcMs = System.currentTimeMillis(),
         )
+        val previous = prefs.location.first().point
         prefs.saveLocation(stored)
+        // Another place's readings must not show under the new one until it refreshes.
+        val moved = point == null || previous == null || Earth.distanceKm(previous, point) > PLACE_CHANGE_KM
+        if (moved) {
+            prefs.clearWeather()
+            sky.bump()
+        }
     }
 
     override suspend fun refreshDeviceLocation(): Boolean {
@@ -101,7 +108,8 @@ class WorldRepositoryImpl @Inject constructor(
     suspend fun refreshDeviceLocationIfStale(maxAgeMs: Long = 20 * WorldMath.HOUR) {
         val current = prefs.location.first()
         if (current.mode != LocationMode.PRECISE && current.mode != LocationMode.APPROXIMATE) return
-        if (System.currentTimeMillis() - current.updatedUtcMs < maxAgeMs) return
+        // A setting that has never produced a point is always stale, so a first miss is retried.
+        if (current.point != null && System.currentTimeMillis() - current.updatedUtcMs < maxAgeMs) return
         guard("device location") { refreshDeviceLocation() }
     }
 
@@ -363,6 +371,7 @@ class WorldRepositoryImpl @Inject constructor(
         const val KP_KEEP_DAYS = 10L
         const val GROUND_KEEP_DAYS = 30L
         const val MAX_GROUND_NOTICES = 3
+        const val PLACE_CHANGE_KM = 25.0
         const val KP_OBSERVED_URL = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json"
         const val KP_FORECAST_URL = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json"
         const val USGS_WEEK_45 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson"

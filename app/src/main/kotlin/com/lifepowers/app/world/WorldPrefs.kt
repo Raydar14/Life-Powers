@@ -95,6 +95,10 @@ class WorldPrefs @Inject constructor(
         store.edit { it[WEATHER_JSON] = raw }
     }
 
+    suspend fun clearWeather() {
+        store.edit { it.remove(WEATHER_JSON) }
+    }
+
     suspend fun kpReadings(): List<KpReading> {
         val raw = data.first()[KP_JSON] ?: return emptyList()
         return runCatching { json.decodeFromString(ListSerializer(KpDto.serializer()), raw) }.getOrDefault(emptyList())

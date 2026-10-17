@@ -127,7 +127,9 @@ class TimerControllerImpl @Inject constructor(
     }
 
     private suspend fun finish(row: TimerSessionEntity, cancelWork: Boolean): TimerSession? {
-        val end = System.currentTimeMillis()
+        // A planned session never logs past its length, even when the done worker runs late in Doze.
+        val now = System.currentTimeMillis()
+        val end = row.plannedMin?.let { minOf(now, row.startUtc + it * 60_000L) } ?: now
         clear(cancelWork)
         val rawMinutes = (end - row.startUtc) / 60_000.0
         if (rawMinutes < GoalMath.MIN_SESSION_MIN) {
