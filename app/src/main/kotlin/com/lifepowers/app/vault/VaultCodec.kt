@@ -35,9 +35,9 @@ data class SettingValue(val type: String, val value: Any)
 /**
  * The pure parts of backup, restore, and export: no Android types, so they run in plain JUnit.
  *
- * Backup JSON: {"format":"life-powers-backup","version":1,"createdUtc":ms,
- * "databases":{"main":{table:[row...]},"personal":{table:[row...]}},
- * "photos":[{"fileName":..,"bytesBase64":..}],"settings":{name:{"type":..,"value":..}}}.
+ * Backup JSON holds "format" ("life-powers-backup"), "version" (1), "createdUtc", "databases" with
+ * "main" and "personal" each mapping a table name to a list of rows, "photos" as a list of file name
+ * and base64 bytes, and "settings" mapping a name to its type and value.
  * A row is an object of column name to value. Integers and reals are JSON numbers, text is a JSON
  * string, null is null, and a blob is {"b64": base64}.
  */

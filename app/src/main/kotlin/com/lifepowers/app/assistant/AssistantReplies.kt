@@ -23,7 +23,7 @@ object AssistantReplies {
     private val lenient = Json { ignoreUnknownKeys = true; isLenient = true; coerceInputValues = true }
 
     /**
-     * JSON schema for {"questions": [...]}. Structured outputs reject numeric and length bounds,
+     * JSON schema for an object with a "questions" list of strings. Structured outputs reject numeric and length bounds,
      * so limits are described in words and enforced when parsing.
      */
     val QUESTIONS_SCHEMA: Map<String, Any> = mapOf(
