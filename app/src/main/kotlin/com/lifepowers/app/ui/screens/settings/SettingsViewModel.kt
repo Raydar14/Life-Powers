@@ -26,7 +26,6 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class SettingsUiState(
-    val assistantOn: Boolean = false,
     val keepAudio: Boolean = false,
     val ouraToken: String? = null,
     val sync: List<SyncStatus> = emptyList(),
@@ -86,17 +85,16 @@ class SettingsViewModel @Inject constructor(
     /** A one line result from the last Health Connect permission request. */
     val healthConnectNote: StateFlow<String?> = _healthConnect.asStateFlow()
 
+    /** The assistant switches live in AssistantSettingsSection, which has its own view model. */
     val state: StateFlow<SettingsUiState> = combine(
-        settingsRepository.assistantMaster,
         settingsRepository.keepAudio,
         settingsRepository.ouraToken,
         syncManager.status,
         profileRepository.profile,
-    ) { assistant, keep, token, sync, profile ->
-        SettingsUiState(assistantOn = assistant, keepAudio = keep, ouraToken = token, sync = sync, profile = profile, loaded = true)
+    ) { keep, token, sync, profile ->
+        SettingsUiState(keepAudio = keep, ouraToken = token, sync = sync, profile = profile, loaded = true)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsUiState())
 
-    fun setAssistant(on: Boolean) { viewModelScope.launch { settingsRepository.setAssistantMaster(on) } }
     fun setKeepAudio(on: Boolean) { viewModelScope.launch { settingsRepository.setKeepAudio(on) } }
 
     fun saveOuraToken(token: String) {

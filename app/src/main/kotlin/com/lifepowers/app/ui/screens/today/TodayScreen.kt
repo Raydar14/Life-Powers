@@ -46,6 +46,8 @@ import com.lifepowers.app.ui.components.TierDot
 import com.lifepowers.app.ui.components.softShadow
 import com.lifepowers.app.domain.LocationMode
 import com.lifepowers.app.ui.navigation.Routes
+import com.lifepowers.app.experiments.ExperimentMath
+import com.lifepowers.app.ui.screens.experiments.ExperimentRoutes
 import com.lifepowers.app.ui.screens.sky.SkyText
 import com.lifepowers.app.ui.theme.BodyText
 import com.lifepowers.app.ui.theme.DeepLavender
@@ -60,8 +62,14 @@ import com.lifepowers.app.ui.theme.hexColor
 import com.lifepowers.app.ui.theme.shadowColor
 import com.lifepowers.app.ui.theme.sublineColor
 import com.lifepowers.app.ui.theme.textColor
+import com.lifepowers.app.ui.theme.HotPink
+import com.lifepowers.app.ui.theme.SoftBlue
 import com.lifepowers.core.Component
+import com.lifepowers.core.Condition
 import com.lifepowers.core.Tier
+
+/** The breathing screen's route. Named here because the navigation file belongs to another package. */
+private const val BREATHE_ROUTE = "breathe"
 
 @Composable
 fun TodayScreen(onNavigate: (String) -> Unit, viewModel: TodayViewModel = hiltViewModel()) {
@@ -80,6 +88,7 @@ fun TodayScreen(onNavigate: (String) -> Unit, viewModel: TodayViewModel = hiltVi
             Header(state, onNavigate)
             DayCard(state, onNavigate)
             QuickRow(onNavigate)
+            state.experiment?.let { ExperimentCard(it, onNavigate) }
             ComponentGrid(state, onNavigate)
             MindCard(state, onNavigate)
             MutedLine(
@@ -163,16 +172,47 @@ private fun DayCardBody(state: TodayUiState, onNavigate: (String) -> Unit) {
 
 @Composable
 private fun QuickRow(onNavigate: (String) -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         PillButton(
-            text = "How I feel", onClick = { onNavigate(Routes.FEEL) }, modifier = Modifier.weight(1f),
-            shadowAlpha = 0.07f, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 12.dp),
+            text = "How I feel", onClick = { onNavigate(Routes.FEEL) }, modifier = Modifier.weight(1.15f),
+            fontSize = 12.sp, shadowAlpha = 0.07f, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 12.dp),
         )
         PillButton(
             text = "Craving", onClick = { onNavigate(Routes.JOURNAL) }, modifier = Modifier.weight(1f),
-            shadowAlpha = 0.07f, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 12.dp),
+            fontSize = 12.sp, shadowAlpha = 0.07f, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 12.dp),
         )
-        HotButton(text = "Talk", onClick = { onNavigate(Routes.CHECKIN) }, modifier = Modifier.weight(1f), fontSize = 13.sp)
+        PillButton(
+            text = "Breathe", onClick = { onNavigate(BREATHE_ROUTE) }, modifier = Modifier.weight(1f),
+            fontSize = 12.sp, shadowAlpha = 0.07f, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 12.dp),
+        )
+        HotButton(text = "Talk", onClick = { onNavigate(Routes.CHECKIN) }, modifier = Modifier.weight(0.9f), fontSize = 13.sp)
+    }
+}
+
+/** The running experiment's plan for today: hot pink on an on day, soft blue on an off day. */
+@Composable
+private fun ExperimentCard(experiment: TodayExperiment, onNavigate: (String) -> Unit) {
+    val on = experiment.condition == Condition.ON
+    val text = if (on) {
+        "Experiment: on day. ${ExperimentMath.upperFirst(experiment.behavior.trim().trimEnd('.'))}."
+    } else {
+        "Experiment: off day. Live as usual."
+    }
+    SoftCard(
+        modifier = Modifier.fillMaxWidth(),
+        color = if (on) HotPink else SoftBlue,
+        radius = 24.dp,
+        shadowColor = if (on) Tier.BEST.shadowColor() else Tier.LIKELY_HARD.shadowColor(),
+        shadowAlpha = 0.2f,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 13.dp),
+        gap = 0.dp,
+        onClick = { onNavigate(ExperimentRoutes.LIST) },
+    ) {
+        Text(
+            text = text,
+            color = if (on) PanelInkOnHot else Ink,
+            fontSize = 14.sp, lineHeight = 19.sp, fontWeight = FontWeight.ExtraBold,
+        )
     }
 }
 

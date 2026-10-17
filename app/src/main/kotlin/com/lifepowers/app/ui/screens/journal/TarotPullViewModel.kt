@@ -2,8 +2,14 @@ package com.lifepowers.app.ui.screens.journal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lifepowers.app.domain.AssistantFeatures
+import com.lifepowers.app.domain.AssistantPreview
+import com.lifepowers.app.domain.AssistantRepository
+import com.lifepowers.app.domain.AssistantResult
+import com.lifepowers.app.domain.ForecastRepository
 import com.lifepowers.app.domain.JournalRepository
 import com.lifepowers.app.domain.TarotPull
+import com.lifepowers.core.Tier
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -70,15 +76,37 @@ data class PullUiState(
     val saving: Boolean = false,
     val notice: String? = null,
     val closed: Boolean = false,
+    /** True only while the card feature is available; the button disappears otherwise. */
+    val cardAssist: Boolean = false,
+    val includeNote: Boolean = false,
+    /** Today's forecast color in words, offered only for a pull dated today with a known tier. */
+    val dayTier: String? = null,
+    val includeTier: Boolean = false,
+    /** Set while the preview dialog is open. */
+    val assistPreview: AssistantPreview? = null,
+    val assistSending: Boolean = false,
+    val assistError: String? = null,
 )
 
 @HiltViewModel
-class TarotPullViewModel @Inject constructor(private val journalRepository: JournalRepository) : ViewModel() {
+class TarotPullViewModel @Inject constructor(
+    private val journalRepository: JournalRepository,
+    private val assistantRepository: AssistantRepository,
+    private val forecastRepository: ForecastRepository,
+) : ViewModel() {
 
     private val _state = MutableStateFlow(PullUiState())
     val state: StateFlow<PullUiState> = _state.asStateFlow()
 
     private var started = false
+
+    init {
+        viewModelScope.launch {
+            assistantRepository.available(AssistantFeatures.CARD).collect { on ->
+                _state.update { it.copy(cardAssist = on, assistPreview = if (on) it.assistPreview else null) }
+            }
+        }
+    }
 
     /** Called once per screen. pullId 0 starts a new pull for today, attached to [entryId] when it is not 0. */
     fun load(pullId: Long, entryId: Long) {
@@ -95,6 +123,7 @@ class TarotPullViewModel @Inject constructor(private val journalRepository: Jour
                 _state.update {
                     if (found == null) it.copy(loaded = true, missing = true) else it.copy(loaded = true, form = PullForm.of(found))
                 }
+                if (found != null) loadDayTier(found.localDate)
             }
         }
     }
@@ -119,6 +148,75 @@ class TarotPullViewModel @Inject constructor(private val journalRepository: Jour
         return runCatching { journalRepository.pulls(LocalDate.of(1900, 1, 1), today.plusYears(5)).first() }
             .getOrNull()
             ?.firstOrNull { it.id == pullId }
+    }
+
+    /** Today's forecast tier as words, only for a pull dated today. Never sent unless the person turns it on. */
+    private suspend fun loadDayTier(date: LocalDate) {
+        if (date != LocalDate.now()) return
+        val tier = runCatching { forecastRepository.dayTiers(date, date).first()[date] }.getOrNull()
+        if (tier != null && tier != Tier.UNKNOWN) _state.update { it.copy(dayTier = tier.label) }
+    }
+
+    // Assistant
+
+    fun setIncludeNote(on: Boolean) = _state.update { it.copy(includeNote = on) }
+
+    fun setIncludeTier(on: Boolean) = _state.update { it.copy(includeTier = on) }
+
+    private fun tierToSend(s: PullUiState): String? = if (s.includeTier) s.dayTier else null
+
+    /** Opens the preview. Nothing is sent until [sendToAssistant]. */
+    fun askAssistant() {
+        val s = _state.value
+        if (!s.cardAssist || s.form.id == 0L || s.form.card.isBlank() || s.assistSending) return
+        val preview = assistantRepository.previewCard(s.form.toPull(), s.includeNote, tierToSend(s))
+        _state.update { it.copy(assistPreview = preview, assistError = null) }
+    }
+
+    fun cancelAssistant() {
+        if (_state.value.assistSending) return
+        _state.update { it.copy(assistPreview = null) }
+    }
+
+    fun sendToAssistant() {
+        val s = _state.value
+        if (s.assistPreview == null || s.assistSending) return
+        val pull = s.form.toPull()
+        val includeNote = s.includeNote
+        val tier = tierToSend(s)
+        viewModelScope.launch {
+            _state.update { it.copy(assistSending = true) }
+            val result = try {
+                assistantRepository.interpretCard(pull, includeNote, tier)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AssistantResult.Failed("Could not reach the assistant. Check your connection.")
+            }
+            when (result) {
+                is AssistantResult.Ok -> {
+                    val saved = pull.copy(interpretation = result.text, interpretationFromAssistant = true)
+                    val ok = try {
+                        journalRepository.savePull(saved)
+                        true
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        false
+                    }
+                    _state.update {
+                        it.copy(
+                            assistPreview = null,
+                            assistSending = false,
+                            form = it.form.copy(interpretation = result.text, interpretationFromAssistant = true),
+                            assistError = if (ok) null else "The answer is shown here but did not save just now. Tap Save to keep it.",
+                        )
+                    }
+                }
+                is AssistantResult.Failed -> _state.update { it.copy(assistPreview = null, assistSending = false, assistError = result.message) }
+                else -> _state.update { it.copy(assistPreview = null, assistSending = false, assistError = "The assistant's answer could not be read. Try again.") }
+            }
+        }
     }
 
     fun setCard(card: String) = edit { it.copy(card = card.trim()) }

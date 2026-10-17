@@ -5,6 +5,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.lifepowers.app.domain.ReminderScheduler
 import com.lifepowers.app.domain.SyncManager
+import com.lifepowers.app.experiments.ExperimentWork
 import com.lifepowers.app.notify.Notices
 import com.lifepowers.app.patterns.PersonalWork
 import com.lifepowers.app.world.WorldWork
@@ -37,6 +38,7 @@ class LifePowersApp : Application(), Configuration.Provider {
         syncManager.schedulePeriodic()
         PersonalWork.schedule(this)
         WorldWork.schedule(this)
+        ExperimentWork.schedule(this)
         // Alarms are lost on force stop, so re-arm on every start. Idempotent.
         appScope.launch { runCatching { reminderScheduler.rescheduleAll() } }
     }
