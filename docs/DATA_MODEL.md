@@ -449,8 +449,9 @@ Canonical unit in brackets. Day assignment rule tells the rollup which local day
   data across such a change.
 
 - forecast.tier is derived from forecast.score with the thresholds in DESIGN.md section 3.4, and is
-  'unknown' whenever forecast.inputs_used is below 3 or any input lacks a 30 day baseline. The
-  thresholds are settings, the colors are fixed.
+  'unknown' whenever forecast.inputs_used is below 3, or below the number of inputs a component is
+  built from when that is fewer (metabolic uses 2, environment and hormonal 1). The thresholds are
+  settings, the colors are fixed.
 
 - Spoken symptom severity maps intensity words to 1 to 5: a little or slight 1, some or mild 2, no
   qualifier 3, bad or strong or really 4, awful or worst or unbearable or pounding 5.

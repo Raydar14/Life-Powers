@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.LifePowers" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#FFFFF4</item>
+        <item name="android:statusBarColor">#FFFFF4</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">#FFFFF4</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>
