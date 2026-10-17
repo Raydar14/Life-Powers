@@ -21,8 +21,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,15 +58,14 @@ import com.lifepowers.app.ui.components.SoftCard
 import com.lifepowers.app.ui.components.TextLink
 import com.lifepowers.app.ui.components.WrapRow
 import com.lifepowers.app.ui.navigation.Routes
+import com.lifepowers.app.ui.screens.assistant.AssistantSettingsSection
 import com.lifepowers.app.ui.screens.sky.SkyText
 import com.lifepowers.app.ui.theme.DeepPink
 import com.lifepowers.app.ui.theme.HairLine
 import com.lifepowers.app.ui.theme.HotPink
 import com.lifepowers.app.ui.theme.Ink
-import com.lifepowers.app.ui.theme.Lavender
 import com.lifepowers.app.ui.theme.LightPink
 import com.lifepowers.app.ui.theme.Muted
-import com.lifepowers.app.ui.theme.SoftBlue
 import com.lifepowers.app.ui.theme.White
 import java.time.Instant
 import java.time.ZoneId
@@ -107,8 +104,6 @@ fun SettingsScreen(onNavigate: (String) -> Unit, onBack: () -> Unit, viewModel: 
                     )
                 }
             }
-
-            AssistantCard(on = state.assistantOn, onToggle = { viewModel.setAssistant(it) })
 
             SoftCard(modifier = Modifier.fillMaxWidth(), gap = 12.dp) {
                 CardTitle("Connections")
@@ -155,55 +150,19 @@ fun SettingsScreen(onNavigate: (String) -> Unit, onBack: () -> Unit, viewModel: 
                 }
             }
 
+            AssistantSettingsSection(modifier = Modifier.fillMaxWidth())
+
             SoftCard(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 18.dp, vertical = 6.dp), gap = 0.dp) {
                 LinkRow(title = "Profile and hormones", detail = state.modelName) { onNavigate(Routes.PROFILE) }
                 LinkRow(title = "Feelings, your words", detail = "texture ring") { onNavigate(Routes.FEEL) }
                 LinkRow(title = "Goals and reminders", detail = "habits, reminders, timer") { onNavigate(Routes.GOALS) }
+                LinkRow(title = "Breathing", detail = "patterns, guides, history") { onNavigate(Routes.BREATHE) }
+                LinkRow(title = "Experiments", detail = "test one change at a time") { onNavigate(Routes.EXPERIMENTS) }
                 LinkRow(title = "Forecast", detail = "8 panels on Today", enabled = false) {}
-                LinkRow(title = "Privacy and data", detail = "next phase", enabled = false) {}
+                LinkRow(title = "Privacy and data", detail = "backup, export, delete") { onNavigate(Routes.PRIVACY) }
                 LinkRow(title = "Appearance", detail = "next phase", enabled = false) {}
             }
         }
-    }
-}
-
-@Composable
-private fun AssistantCard(on: Boolean, onToggle: (Boolean) -> Unit) {
-    SoftCard(modifier = Modifier.fillMaxWidth(), color = Ink, shadowAlpha = 0.26f, elevation = 14.dp, gap = 10.dp) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(text = "Assistant features", color = White, fontSize = 16.sp, fontWeight = FontWeight.Black)
-                Text(text = "Off means every assistant button disappears.", color = Lavender, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-            }
-            Switch(
-                checked = on,
-                onCheckedChange = onToggle,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = White, checkedTrackColor = HotPink, checkedBorderColor = HotPink,
-                    uncheckedThumbColor = White, uncheckedTrackColor = White.copy(alpha = 0.2f), uncheckedBorderColor = White.copy(alpha = 0.2f),
-                ),
-            )
-        }
-        if (on) {
-            Column(modifier = Modifier.padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistantRow("Interpret tarot cards", "next phase")
-                AssistantRow("Ask about photos", "next phase")
-                AssistantRow("Richer check-in ratings", "off")
-                AssistantRow("Weekly narrative", "off")
-                Text(
-                    text = "Each call shows what it will send before it sends it. Nothing has left the phone yet.",
-                    color = SoftBlue, fontSize = 11.sp, lineHeight = 15.sp, fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AssistantRow(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(text = label, color = White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        Text(text = value, color = if (value == "on") LightPink else Lavender, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
     }
 }
 

@@ -43,8 +43,10 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.lifepowers.app.assistant.AssistantReplies
 import com.lifepowers.app.domain.CheckinRecord
 import com.lifepowers.app.ui.components.BodyLine
+import com.lifepowers.app.ui.components.CardTitle
 import com.lifepowers.app.ui.components.Chip
 import com.lifepowers.app.ui.components.CloudPresets
 import com.lifepowers.app.ui.components.Clouds
@@ -57,6 +59,7 @@ import com.lifepowers.app.ui.components.SoftCard
 import com.lifepowers.app.ui.components.TextLink
 import com.lifepowers.app.ui.components.WrapRow
 import com.lifepowers.app.ui.components.softShadow
+import com.lifepowers.app.ui.screens.assistant.AssistantPreviewDialog
 import com.lifepowers.app.ui.theme.DeepPink
 import com.lifepowers.app.ui.theme.Ground
 import com.lifepowers.app.ui.theme.HotPink
@@ -75,6 +78,8 @@ fun CheckinScreen(onBack: () -> Unit, viewModel: CheckinViewModel = hiltViewMode
     val symptomsSaved by viewModel.symptomsSaved.collectAsStateWithLifecycle()
     val behaviorsLogged by viewModel.behaviorsLogged.collectAsStateWithLifecycle()
     val notice by viewModel.notice.collectAsStateWithLifecycle()
+    val richerAvailable by viewModel.richerAvailable.collectAsStateWithLifecycle()
+    val richer by viewModel.richer.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -146,6 +151,12 @@ fun CheckinScreen(onBack: () -> Unit, viewModel: CheckinViewModel = hiltViewMode
                         onSaveSymptoms = { kinds -> viewModel.saveSymptoms(current.record, kinds) },
                         onLogBehaviors = { kinds -> viewModel.logBehaviors(current.record, kinds) },
                     )
+                    RicherReading(
+                        record = current.record,
+                        available = richerAvailable,
+                        state = richer?.takeIf { it.recordStartUtcMs == current.record.startUtcMs },
+                        onAsk = { viewModel.askRicher(current.record) },
+                    )
                 }
                 is CheckinSessionController.State.Error -> {
                     SoftCard(modifier = Modifier.fillMaxWidth(), gap = 10.dp) {
@@ -156,6 +167,64 @@ fun CheckinScreen(onBack: () -> Unit, viewModel: CheckinViewModel = hiltViewMode
                 }
             }
         }
+    }
+
+    val done = state as? CheckinSessionController.State.Done
+    val pendingPreview = richer?.preview
+    if (done != null && pendingPreview != null) {
+        AssistantPreviewDialog(
+            preview = pendingPreview,
+            sending = richer?.sending == true,
+            onSend = { viewModel.sendRicher(done.record) },
+            onCancel = { viewModel.cancelRicher() },
+        )
+    }
+}
+
+/**
+ * The assistant's richer reading of a saved check-in's words. The button shows only while the feature
+ * is available, the check-in has words, and it was not a moment for crisis resources.
+ */
+@Composable
+private fun RicherReading(record: CheckinRecord, available: Boolean, state: RicherReadingState?, onAsk: () -> Unit) {
+    if (record.transcript.isNullOrBlank() || record.crisisFlag) return
+    val ratings = state?.ratings
+    if (ratings == null && !available) return
+    SoftCard(modifier = Modifier.fillMaxWidth(), gap = 10.dp) {
+        CardTitle(text = "A richer reading")
+        if (ratings == null) {
+            MutedLine(text = "The assistant reads only the words of this check-in and rates energy, optimism, tension, and warmth.")
+            PillButton(
+                text = if (state?.sending == true) "Asking" else "Ask for a richer reading",
+                onClick = onAsk,
+                modifier = Modifier.fillMaxWidth(),
+                background = LightPink,
+                shadowColor = HotPink,
+                shadowAlpha = 0.16f,
+                enabled = state?.sending != true,
+            )
+        } else {
+            RatingRow(label = "Energy", scale = "energy", value = ratings.energy)
+            RatingRow(label = "Optimism", scale = "optimism", value = ratings.optimism)
+            RatingRow(label = "Tension", scale = "tension", value = ratings.tension)
+            RatingRow(label = "Warmth", scale = "warmth", value = ratings.warmth)
+            if (ratings.reflection.isNotBlank()) BodyLine(text = ratings.reflection, color = Ink, fontSize = 14.sp, lineHeight = 21.sp)
+            MutedLine(text = "From the assistant, read from your words alone. A reflection, not a diagnosis.")
+        }
+        state?.error?.let { BodyLine(text = it, color = Ink) }
+    }
+}
+
+@Composable
+private fun RatingRow(label: String, scale: String, value: Double) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text(text = label, color = Ink, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
+        Text(
+            text = "${AssistantReplies.ratingWord(scale, value)}, ${AssistantReplies.ratingNumber(value)} of 10",
+            color = Muted,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
 

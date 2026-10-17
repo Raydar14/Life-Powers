@@ -6,6 +6,12 @@ import android.net.Uri
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lifepowers.app.assistant.PhotoNotes
+import com.lifepowers.app.assistant.PhotoPrep
+import com.lifepowers.app.domain.AssistantFeatures
+import com.lifepowers.app.domain.AssistantPreview
+import com.lifepowers.app.domain.AssistantRepository
+import com.lifepowers.app.domain.AssistantResult
 import com.lifepowers.app.domain.JournalEntry
 import com.lifepowers.app.domain.JournalRepository
 import com.lifepowers.app.domain.Photo
@@ -64,6 +70,18 @@ data class EntryForm(
     )
 }
 
+/** One "Ask about this photo" round: preparing, the preview, sending, then the questions to answer. */
+data class PhotoAskState(
+    val photoId: Long,
+    val preparing: Boolean = true,
+    /** Set while the preview dialog is open. */
+    val preview: AssistantPreview? = null,
+    val sending: Boolean = false,
+    val questions: List<String> = emptyList(),
+    val answers: List<String> = emptyList(),
+    val error: String? = null,
+)
+
 data class EntryUiState(
     val form: EntryForm = EntryForm(),
     val loaded: Boolean = false,
@@ -77,12 +95,17 @@ data class EntryUiState(
     val notice: String? = null,
     /** Set once the screen should close. */
     val closed: Boolean = false,
+    /** True only while the photo feature is available; the buttons disappear otherwise. */
+    val photoAssist: Boolean = false,
+    val photoAsk: PhotoAskState? = null,
 )
 
 @HiltViewModel
 class JournalEntryViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val journalRepository: JournalRepository,
+    private val assistantRepository: AssistantRepository,
+    private val photoNotes: PhotoNotes,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(EntryUiState())
@@ -97,6 +120,22 @@ class JournalEntryViewModel @Inject constructor(
     private var deleting = false
     private var observeJob: Job? = null
     private var listenJob: Job? = null
+
+    /** The prepared JPEG the preview described, kept here so exactly that is sent. */
+    private var askJpeg: ByteArray? = null
+    private var askPhoto: Photo? = null
+
+    init {
+        viewModelScope.launch {
+            assistantRepository.available(AssistantFeatures.PHOTO).collect { on ->
+                _state.update { s ->
+                    // Turning the feature off closes a preview that has not been sent.
+                    val ask = s.photoAsk?.takeIf { on || it.sending || it.questions.isNotEmpty() }
+                    s.copy(photoAssist = on, photoAsk = ask)
+                }
+            }
+        }
+    }
 
     /** Called once per screen with the route's id. 0 starts a new entry for today. */
     fun load(entryId: Long) {
@@ -381,6 +420,95 @@ class JournalEntryViewModel @Inject constructor(
             } else {
                 _state.update { it.copy(notice = "That photo could not be removed just now.") }
             }
+        }
+    }
+
+    // Assistant: questions about one photo
+
+    /** Prepares the photo and opens the preview. Nothing is sent until [sendPhotoAsk]. */
+    fun askAboutPhoto(photo: Photo) {
+        val s = _state.value
+        if (!s.photoAssist || s.photoAsk?.let { it.preparing || it.sending } == true) return
+        askJpeg = null
+        askPhoto = photo
+        _state.update { it.copy(photoAsk = PhotoAskState(photoId = photo.id), notice = null) }
+        viewModelScope.launch {
+            val raw = withContext(Dispatchers.IO) { runCatching { journalRepository.loadPhoto(photo) }.getOrNull() }
+            val jpeg = raw?.let { bytes -> withContext(Dispatchers.Default) { runCatching { PhotoPrep.prepare(bytes) }.getOrNull() } }
+            if (jpeg == null) {
+                _state.update { it.copy(photoAsk = null, notice = "That photo could not be read.") }
+                return@launch
+            }
+            askJpeg = jpeg
+            val preview = assistantRepository.previewPhoto(photo, jpeg.size, photo.caption)
+            _state.update { st ->
+                val ask = st.photoAsk
+                if (ask == null || ask.photoId != photo.id) st else st.copy(photoAsk = ask.copy(preparing = false, preview = preview))
+            }
+        }
+    }
+
+    fun cancelPhotoAsk() {
+        if (_state.value.photoAsk?.sending == true) return
+        askJpeg = null
+        askPhoto = null
+        _state.update { it.copy(photoAsk = null) }
+    }
+
+    fun sendPhotoAsk() {
+        val ask = _state.value.photoAsk ?: return
+        val photo = askPhoto ?: return
+        val jpeg = askJpeg ?: return
+        if (ask.preview == null || ask.sending) return
+        viewModelScope.launch {
+            _state.update { s -> s.copy(photoAsk = s.photoAsk?.copy(sending = true)) }
+            val result = try {
+                assistantRepository.askAboutPhoto(photo, jpeg, photo.caption)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AssistantResult.Failed("Could not reach the assistant. Check your connection.")
+            }
+            askJpeg = null
+            when (result) {
+                is AssistantResult.Questions -> _state.update { s ->
+                    s.copy(
+                        photoAsk = PhotoAskState(
+                            photoId = photo.id,
+                            preparing = false,
+                            questions = result.questions,
+                            answers = result.questions.map { "" },
+                        ),
+                    )
+                }
+                is AssistantResult.Failed -> _state.update { it.copy(photoAsk = null, notice = result.message) }
+                else -> _state.update { it.copy(photoAsk = null, notice = "The assistant's answer could not be read. Try again.") }
+            }
+        }
+    }
+
+    fun setPhotoAnswer(index: Int, text: String) {
+        _state.update { s ->
+            val ask = s.photoAsk ?: return@update s
+            if (index !in ask.answers.indices) return@update s
+            s.copy(photoAsk = ask.copy(answers = ask.answers.toMutableList().also { it[index] = text }, error = null))
+        }
+    }
+
+    /** Appends "Q: ... A: ..." lines for the answered questions to the entry, saves, and keeps the answers with the photo note. */
+    fun addAnswersToEntry() {
+        val ask = _state.value.photoAsk ?: return
+        val block = PhotoNotes.qaBlock(ask.questions, ask.answers)
+        if (block.isBlank()) {
+            _state.update { s -> s.copy(photoAsk = s.photoAsk?.copy(error = "Answer at least one question first.")) }
+            return
+        }
+        edit { f -> f.copy(text = PhotoNotes.appendBlock(f.text, block)) }
+        _state.update { it.copy(photoAsk = null) }
+        askPhoto = null
+        viewModelScope.launch {
+            saveNow()
+            runCatching { photoNotes.saveAnswers(ask.photoId, ask.answers) }
         }
     }
 

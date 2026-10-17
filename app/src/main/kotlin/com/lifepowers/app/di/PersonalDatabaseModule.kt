@@ -3,6 +3,9 @@ package com.lifepowers.app.di
 import android.content.Context
 import androidx.room.Room
 import com.lifepowers.app.data.DatabasePassphrase
+import com.lifepowers.app.data.personal.AssistantDao
+import com.lifepowers.app.data.personal.BreathDao
+import com.lifepowers.app.data.personal.ExperimentDao
 import com.lifepowers.app.data.personal.GoalDao
 import com.lifepowers.app.data.personal.HabitCheckDao
 import com.lifepowers.app.data.personal.JournalDao
@@ -36,4 +39,7 @@ object PersonalDatabaseModule {
     @Provides fun timerSessionDao(db: PersonalDatabase): TimerSessionDao = db.timerSessionDao()
     @Provides fun journalDao(db: PersonalDatabase): JournalDao = db.journalDao()
     @Provides fun worldEventDao(db: PersonalDatabase): WorldEventDao = db.worldEventDao()
+    @Provides fun breathDao(db: PersonalDatabase): BreathDao = db.breathDao()
+    @Provides fun experimentDao(db: PersonalDatabase): ExperimentDao = db.experimentDao()
+    @Provides fun assistantDao(db: PersonalDatabase): AssistantDao = db.assistantDao()
 }

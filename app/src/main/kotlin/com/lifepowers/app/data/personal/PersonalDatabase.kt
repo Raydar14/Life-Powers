@@ -1,5 +1,6 @@
 package com.lifepowers.app.data.personal
 
+import androidx.room.AutoMigration
 import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Database
@@ -14,10 +15,12 @@ import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 /*
- * Phase 2 tables live in their own encrypted database, so the Phase 1 database needs no migration and
+ * Phase 2 and later tables live in their own encrypted database, so the Phase 1 database needs no migration and
  * nobody's synced history is touched. Same SQLCipher passphrase, separate file.
  * Lists are stored as comma separated text: reminder times as HH:mm, days as ISO day numbers 1 to 7,
  * tags as plain words. Dates are ISO local dates.
+ * Version 2 adds breathing, experiments, and the assistant log through an AutoMigration that only
+ * creates tables; the committed schemas in app/schemas let Room generate it.
  */
 
 @Entity(tableName = "goal")
@@ -253,6 +256,176 @@ interface WorldEventDao {
     suspend fun prune(beforeUtc: Long)
 }
 
+@Entity(tableName = "breath_pattern")
+data class BreathPatternEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    @ColumnInfo(name = "inhale_s") val inhaleS: Double,
+    @ColumnInfo(name = "hold_in_s") val holdInS: Double,
+    @ColumnInfo(name = "exhale_s") val exhaleS: Double,
+    @ColumnInfo(name = "hold_out_s") val holdOutS: Double,
+    /** Comma separated guide modes: visual, tones, voice, vibration. */
+    val guide: String,
+    @ColumnInfo(name = "session_min") val sessionMin: Int?,
+    @ColumnInfo(name = "created_utc") val createdUtc: Long,
+    @ColumnInfo(name = "last_used_utc") val lastUsedUtc: Long?,
+)
+
+@Entity(tableName = "breath_session", indices = [Index(value = ["start_utc"])])
+data class BreathSessionEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "pattern_id") val patternId: Long?,
+    @ColumnInfo(name = "pattern_name") val patternName: String,
+    @ColumnInfo(name = "inhale_s") val inhaleS: Double,
+    @ColumnInfo(name = "hold_in_s") val holdInS: Double,
+    @ColumnInfo(name = "exhale_s") val exhaleS: Double,
+    @ColumnInfo(name = "hold_out_s") val holdOutS: Double,
+    @ColumnInfo(name = "start_utc") val startUtc: Long,
+    @ColumnInfo(name = "end_utc") val endUtc: Long,
+    @ColumnInfo(name = "zone_offset_min") val zoneOffsetMin: Int,
+    val sensor: String?,
+    @ColumnInfo(name = "start_bpm") val startBpm: Double?,
+    @ColumnInfo(name = "end_bpm") val endBpm: Double?,
+    @ColumnInfo(name = "start_rmssd") val startRmssd: Double?,
+    @ColumnInfo(name = "end_rmssd") val endRmssd: Double?,
+    @ColumnInfo(name = "best_swing") val bestSwing: Double?,
+    @ColumnInfo(name = "mean_sync") val meanSync: Double?,
+    val readings: Int,
+    /** Heart rate per five seconds as comma separated numbers, empty slots blank. */
+    @ColumnInfo(name = "hr_timeline") val hrTimeline: String,
+    @ColumnInfo(name = "goal_id") val goalId: Long?,
+    @ColumnInfo(name = "event_id") val eventId: Long?,
+)
+
+@Entity(tableName = "experiment")
+data class ExperimentEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val behavior: String,
+    @ColumnInfo(name = "outcome_metric") val outcomeMetric: String,
+    @ColumnInfo(name = "outcome_lag") val outcomeLag: Int,
+    @ColumnInfo(name = "block_days") val blockDays: Int,
+    @ColumnInfo(name = "target_days") val targetDays: Int,
+    @ColumnInfo(name = "started_on") val startedOn: String,
+    @ColumnInfo(name = "ended_on") val endedOn: String?,
+    @ColumnInfo(name = "reminder_hour") val reminderHour: Int?,
+)
+
+@Entity(tableName = "experiment_day", primaryKeys = ["experiment_id", "local_date"])
+data class ExperimentDayEntity(
+    @ColumnInfo(name = "experiment_id") val experimentId: Long,
+    @ColumnInfo(name = "local_date") val localDate: String,
+    val adhered: Boolean,
+)
+
+@Entity(tableName = "assistant_call", indices = [Index(value = ["at_utc"])])
+data class AssistantCallEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val feature: String,
+    @ColumnInfo(name = "at_utc") val atUtc: Long,
+    @ColumnInfo(name = "sent_summary") val sentSummary: String,
+    val response: String?,
+    val ok: Boolean,
+)
+
+@Entity(tableName = "photo_note", indices = [Index(value = ["photo_id"])])
+data class PhotoNoteEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "photo_id") val photoId: Long,
+    @ColumnInfo(name = "at_utc") val atUtc: Long,
+    /** The assistant's questions, one per line. */
+    val questions: String,
+    /** The person's answers, one per line, or empty until answered. */
+    val answers: String,
+)
+
+@Dao
+interface BreathDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertPattern(p: BreathPatternEntity): Long
+
+    @Query("SELECT * FROM breath_pattern ORDER BY COALESCE(last_used_utc, created_utc) DESC")
+    fun patterns(): Flow<List<BreathPatternEntity>>
+
+    @Query("SELECT * FROM breath_pattern WHERE id = :id")
+    suspend fun patternOnce(id: Long): BreathPatternEntity?
+
+    @Query("UPDATE breath_pattern SET last_used_utc = :at WHERE id = :id")
+    suspend fun markUsed(id: Long, at: Long)
+
+    @Query("DELETE FROM breath_pattern WHERE id = :id")
+    suspend fun deletePattern(id: Long)
+
+    @Insert
+    suspend fun insertSession(s: BreathSessionEntity): Long
+
+    @Update
+    suspend fun updateSession(s: BreathSessionEntity)
+
+    @Query("SELECT * FROM breath_session ORDER BY start_utc DESC LIMIT :limit")
+    fun sessions(limit: Int): Flow<List<BreathSessionEntity>>
+
+    @Query("SELECT * FROM breath_session ORDER BY start_utc")
+    suspend fun allSessions(): List<BreathSessionEntity>
+
+    @Query("SELECT * FROM breath_session WHERE id = :id")
+    suspend fun sessionOnce(id: Long): BreathSessionEntity?
+
+    @Query("DELETE FROM breath_session WHERE id = :id")
+    suspend fun deleteSession(id: Long)
+}
+
+@Dao
+interface ExperimentDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(e: ExperimentEntity): Long
+
+    @Query("SELECT * FROM experiment ORDER BY (ended_on IS NOT NULL), started_on DESC")
+    fun all(): Flow<List<ExperimentEntity>>
+
+    @Query("SELECT * FROM experiment WHERE ended_on IS NULL")
+    suspend fun runningOnce(): List<ExperimentEntity>
+
+    @Query("SELECT * FROM experiment WHERE id = :id")
+    suspend fun byIdOnce(id: Long): ExperimentEntity?
+
+    @Query("UPDATE experiment SET ended_on = :on WHERE id = :id")
+    suspend fun end(id: Long, on: String)
+
+    @Query("DELETE FROM experiment WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertDay(d: ExperimentDayEntity)
+
+    @Query("DELETE FROM experiment_day WHERE experiment_id = :id AND local_date = :date")
+    suspend fun clearDay(id: Long, date: String)
+
+    @Query("DELETE FROM experiment_day WHERE experiment_id = :id")
+    suspend fun clearDays(id: Long)
+
+    @Query("SELECT * FROM experiment_day")
+    fun days(): Flow<List<ExperimentDayEntity>>
+}
+
+@Dao
+interface AssistantDao {
+    @Insert
+    suspend fun insertCall(c: AssistantCallEntity): Long
+
+    @Query("SELECT * FROM assistant_call ORDER BY at_utc DESC LIMIT 200")
+    fun calls(): Flow<List<AssistantCallEntity>>
+
+    @Insert
+    suspend fun insertPhotoNote(n: PhotoNoteEntity): Long
+
+    @Update
+    suspend fun updatePhotoNote(n: PhotoNoteEntity)
+
+    @Query("SELECT * FROM photo_note WHERE photo_id = :photoId ORDER BY at_utc DESC")
+    suspend fun notesFor(photoId: Long): List<PhotoNoteEntity>
+}
+
 @Database(
     entities = [
         GoalEntity::class,
@@ -262,9 +435,16 @@ interface WorldEventDao {
         PhotoEntity::class,
         TarotPullEntity::class,
         WorldEventEntity::class,
+        BreathPatternEntity::class,
+        BreathSessionEntity::class,
+        ExperimentEntity::class,
+        ExperimentDayEntity::class,
+        AssistantCallEntity::class,
+        PhotoNoteEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
+    autoMigrations = [AutoMigration(from = 1, to = 2)],
 )
 abstract class PersonalDatabase : RoomDatabase() {
     abstract fun goalDao(): GoalDao
@@ -272,6 +452,9 @@ abstract class PersonalDatabase : RoomDatabase() {
     abstract fun timerSessionDao(): TimerSessionDao
     abstract fun journalDao(): JournalDao
     abstract fun worldEventDao(): WorldEventDao
+    abstract fun breathDao(): BreathDao
+    abstract fun experimentDao(): ExperimentDao
+    abstract fun assistantDao(): AssistantDao
 
     companion object {
         const val NAME = "life_powers_personal.db"

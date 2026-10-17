@@ -81,6 +81,11 @@ object Metrics {
     const val AIR_AQI_MAX = "air.aqi_max"
     const val SPACE_KP_MAX = "space.kp_max"
     const val HABIT_MINUTES = "habit.minutes"
+    const val BREATH_MINUTES = "breath.minutes"
+    const val ASSIST_ENERGY = "assist.energy"
+    const val ASSIST_OPTIMISM = "assist.optimism"
+    const val ASSIST_TENSION = "assist.tension"
+    const val ASSIST_WARMTH = "assist.warmth"
 
     val catalog: Map<String, MetricSpec> = listOf(
         MetricSpec(SLEEP_TOTAL_MIN, "min", DayRule.NIGHT_ENDING, listOf(Agg.LAST), true),
@@ -147,6 +152,11 @@ object Metrics {
         MetricSpec(AIR_AQI_MAX, "index", DayRule.CALENDAR, listOf(Agg.LAST), false),
         MetricSpec(SPACE_KP_MAX, "Kp", DayRule.CALENDAR, listOf(Agg.LAST)),
         MetricSpec(HABIT_MINUTES, "min", DayRule.CALENDAR, listOf(Agg.SUM), true),
+        MetricSpec(BREATH_MINUTES, "min", DayRule.CALENDAR, listOf(Agg.SUM), true),
+        MetricSpec(ASSIST_ENERGY, "0..10", DayRule.CALENDAR, listOf(Agg.LAST), true),
+        MetricSpec(ASSIST_OPTIMISM, "0..10", DayRule.CALENDAR, listOf(Agg.LAST), true),
+        MetricSpec(ASSIST_TENSION, "0..10", DayRule.CALENDAR, listOf(Agg.LAST), false),
+        MetricSpec(ASSIST_WARMTH, "0..10", DayRule.CALENDAR, listOf(Agg.LAST), true),
     ).associateBy { it.key }
 
     fun spec(key: String): MetricSpec = catalog[key] ?: MetricSpec(key, "", DayRule.CALENDAR, listOf(Agg.LAST))
