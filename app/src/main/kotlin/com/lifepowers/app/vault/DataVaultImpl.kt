@@ -3,8 +3,9 @@ package com.lifepowers.app.vault
 import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
-import android.database.SQLException
+import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteDatatypeMismatchException
 import androidx.core.app.NotificationManagerCompat
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -50,6 +51,7 @@ import java.io.OutputStream
 import java.io.OutputStreamWriter
 import java.io.Writer
 import java.util.Base64
+import java.util.concurrent.Callable
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import javax.inject.Inject
@@ -224,8 +226,18 @@ class DataVaultImpl @Inject constructor(
         val databases = obj["databases"] as JsonObject
         val empty = JsonObject(emptyMap())
 
-        val main = restoreDatabase(mainDb, databases[VaultCodec.DB_MAIN] as? JsonObject ?: empty)
-        val personal = restoreDatabase(personalDb, databases[VaultCodec.DB_PERSONAL] as? JsonObject ?: empty)
+        // Both databases are replaced inside one pair of nested transactions on this thread, so a
+        // failure in either (a full disk, say) leaves both exactly as they were.
+        val (main, personal) = mainDb.runInTransaction(
+            Callable {
+                personalDb.runInTransaction(
+                    Callable {
+                        restoreDatabase(mainDb, databases[VaultCodec.DB_MAIN] as? JsonObject ?: empty) to
+                            restoreDatabase(personalDb, databases[VaultCodec.DB_PERSONAL] as? JsonObject ?: empty)
+                    },
+                )
+            },
+        )
 
         val photos = restorePhotos(obj["photos"] as? JsonArray ?: JsonArray(emptyList()))
         runCatching { removeUnreferencedPhotoFiles() }
@@ -240,11 +252,12 @@ class DataVaultImpl @Inject constructor(
     }
 
     /**
-     * Empties every user table of [db] and fills it from [tables], in one transaction. Tables this
-     * version does not have, and columns a table does not have, are skipped. A row the schema refuses
-     * is skipped rather than failing the whole restore.
+     * Empties every user table of [db] and fills it from [tables]. Runs inside the caller's
+     * transaction. Tables this version does not have, and columns a table does not have, are skipped.
+     * A row the schema refuses is skipped rather than failing the whole restore; any other database
+     * error (a full disk, an I/O error) fails the restore so the transaction rolls back.
      */
-    private suspend fun restoreDatabase(db: RoomDatabase, tables: JsonObject): Map<String, Int> = db.withTransaction {
+    private fun restoreDatabase(db: RoomDatabase, tables: JsonObject): Map<String, Int> {
         val sdb = db.openHelper.writableDatabase
         val existing = userTables(sdb)
         for (table in existing) sdb.execSQL("DELETE FROM ${quote(table)}")
@@ -258,14 +271,16 @@ class DataVaultImpl @Inject constructor(
                 if (values.size() == 0) continue
                 val id = try {
                     sdb.insert(table, SQLiteDatabase.CONFLICT_REPLACE, values)
-                } catch (e: SQLException) {
+                } catch (e: SQLiteConstraintException) {
+                    -1L
+                } catch (e: SQLiteDatatypeMismatchException) {
                     -1L
                 }
                 if (id != -1L) n++
             }
             counts[table] = n
         }
-        counts
+        return counts
     }
 
     private fun contentValuesOf(row: JsonObject, columns: Set<String>): ContentValues {

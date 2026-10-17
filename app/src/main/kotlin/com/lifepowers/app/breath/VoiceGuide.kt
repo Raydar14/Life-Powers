@@ -30,11 +30,15 @@ class VoiceGuide @Inject constructor(
     fun prepare() {
         main.post {
             if (tts == null) {
-                tts = try {
-                    TextToSpeech(context) { status -> main.post { onInit(status) } }
+                // A stopped engine's late init must not mark a newer engine ready, or the newer one is
+                // spoken to before it is up and then shut down by the failed language check.
+                var created: TextToSpeech? = null
+                created = try {
+                    TextToSpeech(context) { status -> main.post { if (tts === created) onInit(status) } }
                 } catch (_: Exception) {
                     null
                 }
+                tts = created
             }
         }
     }

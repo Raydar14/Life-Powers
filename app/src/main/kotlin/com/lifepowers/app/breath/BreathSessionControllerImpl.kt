@@ -213,7 +213,7 @@ class BreathSessionControllerImpl @Inject constructor(
             settle(last, null)
             return
         }
-        val record = record(s, System.currentTimeMillis())
+        val record = record(s, System.currentTimeMillis(), elapsedS)
         scope.launch {
             val id = runCatching { repository.saveSession(record) }.getOrNull()
             settle(last, id)
@@ -229,7 +229,11 @@ class BreathSessionControllerImpl @Inject constructor(
         }
     }
 
-    private fun record(s: Running, endUtcMs: Long): BreathSessionRecord {
+    /**
+     * Heart data is read over the whole wall clock window, but the stored end is start plus the time
+     * actually breathed, so a pause does not count as breathing minutes toward goals.
+     */
+    private fun record(s: Running, endUtcMs: Long, activeS: Double): BreathSessionRecord {
         val pattern = s.saved.pattern
         val readings = sessionReadings(s.startUtcMs, endUtcMs)
         val timeline = if (readings.isEmpty()) {
@@ -243,7 +247,7 @@ class BreathSessionControllerImpl @Inject constructor(
             patternName = s.saved.name,
             pattern = pattern,
             startUtcMs = s.startUtcMs,
-            endUtcMs = endUtcMs,
+            endUtcMs = minOf(endUtcMs, s.startUtcMs + (activeS * 1000).toLong()),
             zoneOffsetMin = s.zoneOffsetMin,
             sensor = sensor,
             summary = Biofeedback.summary(readings, s.startUtcMs, endUtcMs, pattern),

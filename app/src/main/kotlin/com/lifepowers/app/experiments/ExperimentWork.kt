@@ -110,6 +110,8 @@ class ExperimentReminderWorker @AssistedInject constructor(
                     is ExperimentNotice.Today -> notice.text
                     ExperimentNotice.Complete -> ExperimentMath.COMPLETE_TEXT
                 }
+                // With notices off nothing is marked, so the notice still arrives once they are allowed.
+                if (!Notices.canPost(applicationContext)) continue
                 Notices.post(
                     context = applicationContext,
                     channel = Notices.CHANNEL_REMINDERS,
