@@ -20,6 +20,7 @@ serialization = "1.7.3"
 coroutines = "1.9.0"
 security-crypto = "1.1.0-alpha06"
 google-fonts = "1.7.6"
+anthropic = "2.34.0"
 junit = "4.13.2"
 kotlin-test = "2.1.0"
 androidx-test-ext = "1.2.1"
@@ -53,6 +54,7 @@ health-connect = { module = "androidx.health.connect:connect-client", version.re
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 security-crypto = { module = "androidx.security:security-crypto", version.ref = "security-crypto" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
+anthropic-java = { module = "com.anthropic:anthropic-java", version.ref = "anthropic" }
 okhttp-logging = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "okhttp" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }

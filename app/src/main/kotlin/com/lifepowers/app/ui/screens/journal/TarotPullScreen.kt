@@ -36,10 +36,12 @@ import com.lifepowers.app.ui.components.Chip
 import com.lifepowers.app.ui.components.CloudPresets
 import com.lifepowers.app.ui.components.Clouds
 import com.lifepowers.app.ui.components.MutedLine
+import com.lifepowers.app.ui.components.PillButton
 import com.lifepowers.app.ui.components.PrimaryButton
 import com.lifepowers.app.ui.components.SoftCard
 import com.lifepowers.app.ui.components.TextLink
 import com.lifepowers.app.ui.components.WrapRow
+import com.lifepowers.app.ui.screens.assistant.AssistantPreviewDialog
 import com.lifepowers.app.ui.theme.DeepLavenderLine
 import com.lifepowers.app.ui.theme.HotPink
 import com.lifepowers.app.ui.theme.Ink
@@ -97,6 +99,15 @@ fun TarotPullScreen(
                 PullBody(state = state, viewModel = viewModel, onDelete = { confirmDelete = true })
             }
         }
+    }
+
+    state.assistPreview?.let { preview ->
+        AssistantPreviewDialog(
+            preview = preview,
+            sending = state.assistSending,
+            onSend = { viewModel.sendToAssistant() },
+            onCancel = { viewModel.cancelAssistant() },
+        )
     }
 
     if (confirmDelete) {
@@ -168,6 +179,19 @@ private fun PullBody(state: PullUiState, viewModel: TarotPullViewModel, onDelete
         )
     }
 
+    val interpretation = form.interpretation
+    if (!interpretation.isNullOrBlank()) {
+        SoftCard(modifier = Modifier.fillMaxWidth(), color = Lavender.copy(alpha = 0.35f), shadowColor = DeepLavenderLine, shadowAlpha = 0.14f, gap = 6.dp) {
+            CardTitle(if (form.interpretationFromAssistant) "From the assistant" else "Meaning")
+            BodyLine(text = interpretation, color = Ink, fontSize = 15.sp, lineHeight = 22.sp)
+            if (form.interpretationFromAssistant) MutedLine(text = "Traditional meanings and prompts for reflection, not a prediction.")
+        }
+    }
+
+    if (state.cardAssist && form.id != 0L && form.card.isNotBlank()) {
+        AssistantCardAsk(state = state, viewModel = viewModel)
+    }
+
     state.notice?.let { notice ->
         SoftCard(modifier = Modifier.fillMaxWidth(), color = LightPink, shadowColor = HotPink, shadowAlpha = 0.14f, gap = 2.dp) {
             BodyLine(text = notice, color = Ink, fontSize = 13.sp)
@@ -188,6 +212,41 @@ private fun PullBody(state: PullUiState, viewModel: TarotPullViewModel, onDelete
         if (form.id != 0L) {
             TextLink(text = "Delete this pull", onClick = onDelete, fontSize = 13.sp)
         }
+    }
+}
+
+/** The assistant button for a saved pull. Shown only while the card feature is available. */
+@Composable
+private fun AssistantCardAsk(state: PullUiState, viewModel: TarotPullViewModel) {
+    SoftCard(modifier = Modifier.fillMaxWidth(), gap = 10.dp) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                CardTitle("Include my note")
+                MutedLine(text = if (state.form.note.isBlank()) "There is no note on this pull yet." else "Your note goes with the card only when this is on.")
+            }
+            SoftSwitch(checked = state.includeNote, onChange = { viewModel.setIncludeNote(it) })
+        }
+        val tier = state.dayTier
+        if (tier != null) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    CardTitle("Include today's forecast color")
+                    MutedLine(text = "Today's color is \"$tier\". Only that word is sent.")
+                }
+                SoftSwitch(checked = state.includeTier, onChange = { viewModel.setIncludeTier(it) })
+            }
+        }
+        PillButton(
+            text = if (state.assistSending) "Asking" else "Ask the assistant about this card",
+            onClick = { viewModel.askAssistant() },
+            modifier = Modifier.fillMaxWidth(),
+            background = LightPink,
+            shadowColor = HotPink,
+            shadowAlpha = 0.16f,
+            enabled = !state.assistSending,
+        )
+        MutedLine(text = "You see exactly what will be sent before anything leaves the phone.")
+        state.assistError?.let { BodyLine(text = it, color = Ink) }
     }
 }
 

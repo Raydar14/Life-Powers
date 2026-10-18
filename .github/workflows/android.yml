@@ -23,6 +23,13 @@ jobs:
         run: ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
       - name: Assemble debug APK
         run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+      # Room writes each database version's schema here. Committed schemas let later versions migrate
+      # with AutoMigration; printing them keeps them readable from the job log.
+      - name: Room schemas
+        run: |
+          ./gradlew :app:kspDebugKotlin --rerun --no-daemon -q
+          find app/schemas -name '*.json' | sort | while read f; do echo "=== $f"; cat "$f"; echo; done
+          git status --porcelain app/schemas
       - uses: actions/upload-artifact@v4
         with:
           name: life-powers-debug-apk

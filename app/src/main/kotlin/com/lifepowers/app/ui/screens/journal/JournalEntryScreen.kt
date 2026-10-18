@@ -43,6 +43,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -63,6 +64,7 @@ import com.lifepowers.app.ui.components.SoftCard
 import com.lifepowers.app.ui.components.TextLink
 import com.lifepowers.app.ui.components.WrapRow
 import com.lifepowers.app.ui.components.softShadow
+import com.lifepowers.app.ui.screens.assistant.AssistantPreviewDialog
 import com.lifepowers.app.ui.theme.HotPink
 import com.lifepowers.app.ui.theme.Ink
 import com.lifepowers.app.ui.theme.LightPink
@@ -175,6 +177,14 @@ fun JournalEntryScreen(
             onDismiss = { confirmDelete = false },
         )
     }
+    state.photoAsk?.preview?.let { preview ->
+        AssistantPreviewDialog(
+            preview = preview,
+            sending = state.photoAsk?.sending == true,
+            onSend = { viewModel.sendPhotoAsk() },
+            onCancel = { viewModel.cancelPhotoAsk() },
+        )
+    }
     photoToRemove?.let { photo ->
         ConfirmDialog(
             title = "Remove this photo?",
@@ -254,7 +264,21 @@ private fun EntryBody(
         onAdd = onAddPhoto,
         onTake = onTakePhoto,
         onRemove = onRemovePhoto,
+        onAsk = if (state.photoAssist) ({ photo: Photo -> viewModel.askAboutPhoto(photo) }) else null,
+        preparingPhotoId = state.photoAsk?.takeIf { it.preparing || it.sending }?.photoId,
     )
+
+    val ask = state.photoAsk
+    if (ask != null && ask.questions.isNotEmpty()) {
+        PhotoQuestionsCard(
+            ask = ask,
+            photo = form.photos.firstOrNull { it.id == ask.photoId },
+            thumb = { photo -> viewModel.thumb(photo) },
+            onAnswer = { i, text -> viewModel.setPhotoAnswer(i, text) },
+            onAdd = { viewModel.addAnswersToEntry() },
+            onDismiss = { viewModel.cancelPhotoAsk() },
+        )
+    }
 
     PullsSection(pulls = form.pulls, onOpen = onOpenPull, onAdd = onAddPull)
 
@@ -335,6 +359,8 @@ private fun PhotosCard(
     onAdd: () -> Unit,
     onTake: () -> Unit,
     onRemove: (Photo) -> Unit,
+    onAsk: ((Photo) -> Unit)? = null,
+    preparingPhotoId: Long? = null,
 ) {
     SoftCard(modifier = Modifier.fillMaxWidth(), gap = 10.dp) {
         CardTitle("Photos")
@@ -351,11 +377,60 @@ private fun PhotosCard(
                 for (photo in row) {
                     Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         PhotoTile(photo = photo, load = thumb, modifier = Modifier.fillMaxWidth().aspectRatio(1f), radius = 28.dp)
+                        if (onAsk != null) {
+                            if (preparingPhotoId == photo.id) {
+                                MutedLine(text = "Getting it ready", textAlign = TextAlign.Center)
+                            } else {
+                                TextLink(text = "Ask about this photo", onClick = { onAsk(photo) })
+                            }
+                        }
                         TextLink(text = "Remove", onClick = { onRemove(photo) })
                     }
                 }
                 repeat(3 - row.size) { Spacer(modifier = Modifier.weight(1f)) }
             }
+        }
+    }
+}
+
+/** The assistant's questions about one photo, a field per question, and "Add to entry". */
+@Composable
+private fun PhotoQuestionsCard(
+    ask: PhotoAskState,
+    photo: Photo?,
+    thumb: suspend (Photo) -> ImageBitmap?,
+    onAnswer: (Int, String) -> Unit,
+    onAdd: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    SoftCard(modifier = Modifier.fillMaxWidth(), gap = 10.dp) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (photo != null) {
+                PhotoTile(photo = photo, load = thumb, modifier = Modifier.weight(0.28f).aspectRatio(1f), radius = 20.dp)
+            }
+            Column(modifier = Modifier.weight(0.72f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                CardTitle("Questions about this photo")
+                MutedLine(text = "From the assistant. Answer any you like; your answers join this entry.")
+            }
+        }
+        ask.questions.forEachIndexed { i, question ->
+            BodyLine(text = question, color = Ink, fontSize = 14.sp, lineHeight = 20.sp)
+            OutlinedTextField(
+                value = ask.answers.getOrElse(i) { "" },
+                onValueChange = { onAnswer(i, it) },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text(text = "Your answer", color = Muted, fontSize = 13.sp) },
+                minLines = 2,
+                shape = RoundedCornerShape(20.dp),
+                textStyle = TextStyle(color = Ink, fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium),
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                colors = softFieldColors(),
+            )
+        }
+        ask.error?.let { BodyLine(text = it, color = Ink) }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            PillButton(text = "Add to entry", onClick = onAdd, background = LightPink, shadowColor = HotPink, shadowAlpha = 0.16f)
+            TextLink(text = "Not now", onClick = onDismiss, fontSize = 13.sp)
         }
     }
 }
@@ -380,15 +455,4 @@ private fun PullsSection(pulls: List<TarotPull>, onOpen: ((TarotPull) -> Unit)?,
             )
         }
     }
-}
-
-/**
- * Where the assistant's entry actions (ask about a photo, interpret a card) will sit in the next phase.
- * Not shown in this phase. When wired, render it only while SettingsRepository.assistantMaster is on,
- * and show what will be sent before anything is sent.
- */
-@Suppress("unused")
-@Composable
-private fun AssistantEntryActions(visible: Boolean) {
-    if (!visible) return
 }

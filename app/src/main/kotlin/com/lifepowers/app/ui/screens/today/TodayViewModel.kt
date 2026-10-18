@@ -7,6 +7,8 @@ import com.lifepowers.app.domain.CheckinRepository
 import com.lifepowers.app.domain.DailyMetricPoint
 import com.lifepowers.app.domain.EventKinds
 import com.lifepowers.app.domain.EventRepository
+import com.lifepowers.app.domain.ExperimentRepository
+import com.lifepowers.app.domain.ExperimentView
 import com.lifepowers.app.domain.ForecastRepository
 import com.lifepowers.app.domain.ForecastSnapshot
 import com.lifepowers.app.domain.GoalRepository
@@ -21,6 +23,7 @@ import com.lifepowers.app.ui.components.Fmt
 import com.lifepowers.core.Agg
 import com.lifepowers.core.Cadence
 import com.lifepowers.core.Component
+import com.lifepowers.core.Condition
 import com.lifepowers.core.Metrics
 import com.lifepowers.core.Tier
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,6 +38,13 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
 import javax.inject.Inject
+
+/** The running experiment's plan for today, for the small card under the quick buttons. */
+data class TodayExperiment(
+    val id: Long,
+    val condition: Condition,
+    val behavior: String,
+)
 
 data class TodayUiState(
     val today: LocalDate = LocalDate.now(),
@@ -59,6 +69,8 @@ data class TodayUiState(
     /** Habits checked today and habits in all, null until goals have loaded. */
     val habitsDone: Int? = null,
     val habitsTotal: Int? = null,
+    /** A running experiment with a plan for today, or null. */
+    val experiment: TodayExperiment? = null,
     val loaded: Boolean = false,
 ) {
     fun tier(component: Component): Tier = componentTiers[component] ?: Tier.UNKNOWN
@@ -131,6 +143,7 @@ class TodayViewModel @Inject constructor(
     checkinRepository: CheckinRepository,
     worldRepository: WorldRepository,
     goalRepository: GoalRepository,
+    experimentRepository: ExperimentRepository,
 ) : ViewModel() {
 
     private val today: LocalDate = LocalDate.now()
@@ -161,6 +174,17 @@ class TodayViewModel @Inject constructor(
         .onStart { emit(null) }
         .catch { emit(null) }
 
+    /** The first running experiment with a plan for today. Emits null first so Today never waits on it. */
+    private val experimentFlow: Flow<TodayExperiment?> = experimentRepository.views(today)
+        .map<List<ExperimentView>, TodayExperiment?> { views ->
+            views.firstNotNullOfOrNull { v ->
+                val condition = v.today
+                if (v.record.endedOn == null && condition != null) TodayExperiment(v.record.spec.id, condition, v.record.spec.behavior) else null
+            }
+        }
+        .onStart { emit(null) }
+        .catch { emit(null) }
+
     val state: StateFlow<TodayUiState> = combine(base, cravingCount, checkinRepository.recent(3), skyFlow, goalsFlow) { b, cravings, checkins, sky, goals ->
         val habits = goals?.filter { it.goal.isHabit && !it.goal.archived }
         val latest = latestByKey(b.points)
@@ -187,7 +211,8 @@ class TodayViewModel @Inject constructor(
             habitsTotal = habits?.size,
             loaded = true,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TodayUiState())
+    }.combine(experimentFlow) { s, experiment -> s.copy(experiment = experiment) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TodayUiState())
 
     /** Checked today, or a daily goal already met today (automatic checks count). */
     private fun doneToday(view: GoalView): Boolean =

@@ -82,6 +82,7 @@ object Notices {
     /** Stable id ranges so notices from different features never replace each other. */
     object Ids {
         const val TIMER = 1000
+        const val BREATH = 1001
         fun reminder(goalId: Long) = 2000 + (goalId % 10_000).toInt()
         fun closing(goalId: Long) = 20_000 + (goalId % 10_000).toInt()
         const val SKY_EVENING = 40_000

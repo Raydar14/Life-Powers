@@ -38,7 +38,10 @@ import com.lifepowers.app.ui.components.PillButton
 import com.lifepowers.app.ui.components.ScreenHeader
 import com.lifepowers.app.ui.components.SoftCard
 import com.lifepowers.app.ui.components.TextLink
+import com.lifepowers.app.ui.components.WrapRow
 import com.lifepowers.app.ui.components.dashedBorder
+import com.lifepowers.app.ui.screens.assistant.AssistantNarrativeCard
+import com.lifepowers.app.ui.screens.experiments.ExperimentRoutes
 import com.lifepowers.app.ui.screens.goals.GoalRoutes
 import com.lifepowers.app.ui.theme.DeepLavenderLine
 import com.lifepowers.app.ui.theme.DeepPink
@@ -91,6 +94,11 @@ fun PatternsScreen(onNavigate: (String) -> Unit, viewModel: PatternsViewModel = 
                 MutedLine(text = coverageLine(state.daysWithData), fontSize = 13.sp)
                 val computed = state.computedUtcMs
                 if (computed != null) MutedLine(text = lastLooked(computed))
+                TextLink(
+                    text = "Your experiments",
+                    onClick = { onNavigate(ExperimentRoutes.LIST) },
+                    modifier = Modifier.padding(top = 2.dp),
+                )
             }
 
             when {
@@ -98,10 +106,16 @@ fun PatternsScreen(onNavigate: (String) -> Unit, viewModel: PatternsViewModel = 
                 !state.enoughDays -> NotEnoughCard(state.daysWithData)
                 state.insights.isEmpty() -> QuietCard()
                 else -> {
-                    for (insight in state.insights) {
+                    val sentences = state.insights.map { insight -> Patterns.sentence(insight) { key -> PatternLabels.label(key) } }
+                    AssistantNarrativeCard(findings = sentences, goals = emptyList())
+                    state.insights.forEachIndexed { i, insight ->
                         InsightCard(
                             insight = insight,
+                            sentence = sentences[i],
                             onGoal = { onNavigate(GoalRoutes.edit(0, PatternLabels.goalSuggestion(insight))) },
+                            onExperiment = {
+                                onNavigate(ExperimentRoutes.new(behavior = PatternExperiments.behavior(insight), outcome = insight.outcome))
+                            },
                         )
                     }
                 }
@@ -176,7 +190,7 @@ private fun QuietCard() {
 }
 
 @Composable
-private fun InsightCard(insight: Insight, onGoal: () -> Unit) {
+private fun InsightCard(insight: Insight, sentence: String, onGoal: () -> Unit, onExperiment: () -> Unit) {
     val tint = when (insight.good) {
         true -> GoodTint
         false -> NotGoodTint
@@ -202,10 +216,13 @@ private fun InsightCard(insight: Insight, onGoal: () -> Unit) {
             Text(text = "${insight.n} days", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
         }
         Text(
-            text = Patterns.sentence(insight) { key -> PatternLabels.label(key) },
+            text = sentence,
             color = Ink, fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.ExtraBold,
         )
-        TextLink(text = "Turn into a goal", onClick = onGoal)
+        WrapRow(horizontalGap = 4.dp, verticalGap = 0.dp) {
+            TextLink(text = "Turn into a goal", onClick = onGoal)
+            TextLink(text = "Test it as an experiment", onClick = onExperiment)
+        }
     }
 }
 
